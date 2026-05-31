@@ -123,6 +123,30 @@ DEFAULT_DATA = {
     "predictions": {},
 }
 
+# Real FIFA World Cup 2026 Round-of-32 schedule (source: round_of_32_schedule.md +
+# schedule_bracket.md). FIFA's match numbering is bracket-positional, so M73->r32-1 …
+# M88->r32-16 makes the bracket tree show true future matchups. kickoff_utc values are
+# converted from each host city's IANA zone (DST-correct for late-June/early-July 2026;
+# Mexico observes no DST) and are re-derived + asserted in this task's test.
+R32_SCHEDULE = {
+    "r32-1":  {"home_origin": "2A", "away_origin": "2B",            "kickoff_utc": "2026-06-28T19:00:00+00:00"},
+    "r32-2":  {"home_origin": "1E", "away_origin": "3rd A/B/C/D/F", "kickoff_utc": "2026-06-29T20:30:00+00:00"},
+    "r32-3":  {"home_origin": "1F", "away_origin": "2C",            "kickoff_utc": "2026-06-30T01:00:00+00:00"},
+    "r32-4":  {"home_origin": "1C", "away_origin": "2F",            "kickoff_utc": "2026-06-29T17:00:00+00:00"},
+    "r32-5":  {"home_origin": "1I", "away_origin": "3rd C/D/F/G/H", "kickoff_utc": "2026-06-29T21:00:00+00:00"},
+    "r32-6":  {"home_origin": "2E", "away_origin": "2I",            "kickoff_utc": "2026-06-30T17:00:00+00:00"},
+    "r32-7":  {"home_origin": "1A", "away_origin": "3rd C/E/F/H/I", "kickoff_utc": "2026-07-01T01:00:00+00:00"},
+    "r32-8":  {"home_origin": "1L", "away_origin": "3rd E/H/I/J/K", "kickoff_utc": "2026-06-30T16:00:00+00:00"},
+    "r32-9":  {"home_origin": "1D", "away_origin": "3rd B/E/F/I/J", "kickoff_utc": "2026-07-01T00:00:00+00:00"},
+    "r32-10": {"home_origin": "1G", "away_origin": "3rd A/E/H/I/J", "kickoff_utc": "2026-07-01T20:00:00+00:00"},
+    "r32-11": {"home_origin": "2K", "away_origin": "2L",            "kickoff_utc": "2026-07-02T23:00:00+00:00"},
+    "r32-12": {"home_origin": "1H", "away_origin": "2J",            "kickoff_utc": "2026-07-02T19:00:00+00:00"},
+    "r32-13": {"home_origin": "1B", "away_origin": "3rd E/F/G/I/J", "kickoff_utc": "2026-07-03T03:00:00+00:00"},
+    "r32-14": {"home_origin": "1J", "away_origin": "2H",            "kickoff_utc": "2026-07-03T22:00:00+00:00"},
+    "r32-15": {"home_origin": "1K", "away_origin": "3rd D/E/I/J/L", "kickoff_utc": "2026-07-04T01:30:00+00:00"},
+    "r32-16": {"home_origin": "2D", "away_origin": "2G",            "kickoff_utc": "2026-07-03T18:00:00+00:00"},
+}
+
 
 def _seed_matches():
     """Seed the 32-match knockout structure with TBD slots.
@@ -135,15 +159,19 @@ def _seed_matches():
     plan = [("r32", 16), ("r16", 8), ("qf", 4), ("sf", 2), ("third", 1), ("final", 1)]
     for rnd, count in plan:
         for i in range(1, count + 1):
+            mid = f"{rnd}-{i}"
+            sched = R32_SCHEDULE.get(mid, {})
             matches.append({
-                "id": f"{rnd}-{i}",
+                "id": mid,
                 "round": rnd,
                 "home_team": None,
                 "away_team": None,
-                "kickoff_utc": None,        # tz-aware UTC ISO string, or None (TBD)
+                "home_origin": sched.get("home_origin"),  # R32 slot code; None for R16+
+                "away_origin": sched.get("away_origin"),
+                "kickoff_utc": sched.get("kickoff_utc"),   # tz-aware UTC ISO, or None
                 "home_score": None,
                 "away_score": None,
-                "advanced_team": None,      # who went through (covers penalties)
+                "advanced_team": None,                     # who went through (covers penalties)
             })
     return matches
 
