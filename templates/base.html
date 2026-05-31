@@ -20,35 +20,27 @@
     .badge-open { background:var(--wc-primary); }
     a { color:var(--wc-accent); }
     /* Bracket tree -------------------------------------------------------- */
-    .bracket { display:flex; flex-wrap:nowrap; overflow-x:auto; min-height:54rem; padding-bottom:1rem; }
+    /* align-items:stretch (flex default) is load-bearing: every .round shares
+       the same height H, so each later match centres against its feeding pair.
+       min-height seeds the shorter columns; the r32 column grows past it as its
+       16 cards need (~5rem each), and the others stretch to match. */
+    .bracket { display:flex; flex-wrap:nowrap; overflow-x:auto; min-height:82rem; padding-bottom:1rem; }
     .round { display:flex; flex-direction:column; min-width:210px; padding:0 14px; }
     .round > h6 { flex:0 0 auto; }
     .bracket-match { flex:1 1 0; display:flex; flex-direction:column; justify-content:center; position:relative; }
     .bracket-match .card { margin:0; }
     .bracket-slot { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     /* outgoing L-connector: vertical half drawn by every feeder match */
-    .round-r32 .bracket-match::after,
-    .round-r16 .bracket-match::after,
-    .round-qf  .bracket-match::after,
-    .round-sf  .bracket-match::after {
+    :is(.round-r32, .round-r16, .round-qf, .round-sf) .bracket-match::after {
       content:""; position:absolute; right:-14px; width:14px; height:50%;
       border-right:2px solid var(--wc-line);
     }
     /* top feeder: horizontal stub at its centre + vertical going down */
-    .round-r32 .feeder-top::after,
-    .round-r16 .feeder-top::after,
-    .round-qf  .feeder-top::after,
-    .round-sf  .feeder-top::after { top:50%; border-top:2px solid var(--wc-line); }
+    :is(.round-r32, .round-r16, .round-qf, .round-sf) .feeder-top::after { top:50%; border-top:2px solid var(--wc-line); }
     /* bottom feeder: horizontal stub at its centre + vertical going up */
-    .round-r32 .feeder-bottom::after,
-    .round-r16 .feeder-bottom::after,
-    .round-qf  .feeder-bottom::after,
-    .round-sf  .feeder-bottom::after { bottom:50%; border-bottom:2px solid var(--wc-line); }
+    :is(.round-r32, .round-r16, .round-qf, .round-sf) .feeder-bottom::after { bottom:50%; border-bottom:2px solid var(--wc-line); }
     /* incoming stub: from mid-gutter to each receiver's centre */
-    .round-r16 .bracket-match::before,
-    .round-qf  .bracket-match::before,
-    .round-sf  .bracket-match::before,
-    .round-final .bracket-match::before {
+    :is(.round-r16, .round-qf, .round-sf, .round-final) .bracket-match::before {
       content:""; position:absolute; left:-14px; top:50%; width:14px;
       border-top:2px solid var(--wc-line);
     }
