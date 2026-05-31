@@ -71,7 +71,7 @@ ROUND_LABELS = {
 
 # Compact round codes for bracket feed labels ("Winner R32-1"). Not translated —
 # language-neutral and short enough for a narrow bracket column.
-SHORT = {"r32": "R32", "r16": "R16", "qf": "QF", "sf": "SF"}
+ROUND_CODE_SHORT = {"r32": "R32", "r16": "R16", "qf": "QF", "sf": "SF"}
 
 # Standard bracket pairing: match k of a round is fed by matches (2k-1, 2k) of the
 # previous round; the third-place play-off and the final both draw from the two
@@ -96,6 +96,24 @@ def feeders(match):
     except (ValueError, KeyError):
         return None
     return (word, f"{prev}-{2 * k - 1}", f"{prev}-{2 * k}")
+
+
+def _short_id(feeder_id):
+    """'r32-1' -> 'R32-1' for display."""
+    rnd, _, num = feeder_id.rpartition("-")
+    return f"{ROUND_CODE_SHORT.get(rnd, rnd.upper())}-{num}"
+
+
+def feed_label_pair(match):
+    """Translated placeholder labels for a match's two empty slots, e.g.
+    ('Winner R32-1', 'Winner R32-2') — or (None, None) for Round of 32.
+    Requires app context (uses translate())."""
+    f = feeders(match)
+    if not f:
+        return (None, None)
+    word, top, bot = f
+    return (f"{translate(word)} {_short_id(top)}",
+            f"{translate(word)} {_short_id(bot)}")
 
 
 DEFAULT_DATA = {

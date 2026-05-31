@@ -78,6 +78,8 @@ SPANISH_TRANSLATIONS = {
     "Tournament Bracket": "Cuadro del Torneo",
     "Champion": "Campeón",
     "Result": "Resultado",
+    "Winner": "Ganador",
+    "Loser": "Perdedor",
 
     # Admin
     "Admin Panel": "Panel de Admin",
