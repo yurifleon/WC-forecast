@@ -214,14 +214,26 @@ def migrate_data(data):
 
     # Backfill missing match fields.
     for m in data["matches"]:
-        for field in ("home_team", "away_team", "kickoff_utc",
-                      "home_score", "away_score", "advanced_team"):
+        for field in ("home_team", "away_team", "home_origin", "away_origin",
+                      "kickoff_utc", "home_score", "away_score", "advanced_team"):
             if field not in m:
                 m[field] = None
                 changed = True
         if "round" not in m:
             m["round"] = "r32"
             changed = True
+
+    # Backfill the real R32 schedule (origins + kickoff) where still empty.
+    # Fill-if-empty + idempotent: never clobber admin-entered teams/scores or a
+    # manually-set kickoff. Real home_team/away_team are never touched here.
+    for m in data["matches"]:
+        sched = R32_SCHEDULE.get(m["id"])
+        if not sched:
+            continue
+        for field in ("home_origin", "away_origin", "kickoff_utc"):
+            if m.get(field) is None:
+                m[field] = sched[field]
+                changed = True
 
     if changed:
         _write(data)
