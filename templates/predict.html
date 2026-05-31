@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card p-4">
+      <span class="accent small">{{ round_label(match.round) }}</span>
+      <h4 class="mb-1">{{ match.home_team }} vs {{ match.away_team }}</h4>
+      <div class="small text-muted mb-3">{{ _("Deadline") }}: {{ match.kickoff_utc | deadline_tz }}</div>
+
+      <form method="post" action="{{ url_for('predict', match_id=match.id) }}">
+        <label class="form-label">{{ _("Predict the full-time score") }}</label>
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <div class="text-center">
+            <div class="small">{{ match.home_team }}</div>
+            <input class="form-control text-center" type="number" min="0" name="home"
+                   value="{{ prediction.home if prediction else '' }}" style="width:80px" required>
+          </div>
+          <div class="fs-4">-</div>
+          <div class="text-center">
+            <div class="small">{{ match.away_team }}</div>
+            <input class="form-control text-center" type="number" min="0" name="away"
+                   value="{{ prediction.away if prediction else '' }}" style="width:80px" required>
+          </div>
+        </div>
+
+        <label class="form-label">{{ _("If it goes to penalties, who advances?") }}</label>
+        <div class="mb-3">
+          <select class="form-select" name="advance" required>
+            <option value="" disabled {{ 'selected' if not prediction }}>{{ _("Who advances?") }}</option>
+            <option value="{{ match.home_team }}" {{ 'selected' if prediction and prediction.advance == match.home_team }}>{{ match.home_team }}</option>
+            <option value="{{ match.away_team }}" {{ 'selected' if prediction and prediction.advance == match.away_team }}>{{ match.away_team }}</option>
+          </select>
+        </div>
+
+        <button class="btn btn-wc w-100" type="submit">
+          {{ _("Update Forecast") if prediction else _("Make Prediction") }}
+        </button>
+      </form>
+      <a class="d-block text-center mt-3" href="{{ url_for('dashboard') }}">← {{ _("Dashboard") }}</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+  <div class="col-lg-8">
+    <h3 class="mb-3">{{ _("Your Predictions") }}</h3>
+    {% for m in matches %}
+    {% set pred = predictions.get(m.id) %}
+    <div class="card mb-2">
+      <div class="card-body d-flex justify-content-between align-items-center flex-wrap">
+        <div>
+          <span class="accent small">{{ round_label(m.round) }}</span><br>
+          {% if has_teams(m) %}
+            <strong>{{ m.home_team }}</strong> vs <strong>{{ m.away_team }}</strong>
+          {% else %}
+            <span class="text-muted">{{ _("TBD") }}</span>
+          {% endif %}
+          <div class="small text-muted">{{ _("Deadline") }}: {{ m.kickoff_utc | deadline_tz }}</div>
+        </div>
+        <div class="text-end">
+          {% if not has_teams(m) %}
+            <span class="badge badge-tbd">{{ _("TBD") }}</span>
+          {% elif is_locked(m) %}
+            <span class="badge badge-locked">{{ _("Locked") }}</span>
+          {% else %}
+            <span class="badge badge-open">{{ _("Open") }}</span>
+          {% endif %}
+          {% if pred %}
+            <div class="mt-1">{{ pred.home }} - {{ pred.away }}
+              <div class="small accent">→ {{ pred.advance }}</div>
+            </div>
+          {% endif %}
+          {% if is_predictable(m) %}
+            <a class="btn btn-sm btn-wc mt-2" href="{{ url_for('predict', match_id=m.id) }}">
+              {{ _("Update Forecast") if pred else _("Make Prediction") }}
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card p-3">
+      <h5>{{ _("Leaderboard") }}</h5>
+      <table class="table table-sm mb-0">
+        <tbody>
+          {% for row in leaderboard %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ row.user }}</td>
+            <td class="text-end accent">{{ row.total }}</td>
+          </tr>
+          {% else %}
+          <tr><td class="text-muted">{{ _("No players yet.") }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <a class="btn btn-sm btn-outline-light mt-2" href="{{ url_for('leaderboard') }}">{{ _("Leaderboard") }}</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block content %}
+<h3 class="mb-3">{{ _("Admin Panel") }}</h3>
+
+{% if not is_admin %}
+<div class="row justify-content-center">
+  <div class="col-md-5">
+    <div class="card p-4">
+      <form method="post" action="{{ url_for('admin') }}">
+        <input type="hidden" name="action" value="login">
+        <label class="form-label">{{ _("Password") }}</label>
+        <input class="form-control mb-3" type="password" name="password" autofocus required>
+        <button class="btn btn-wc w-100" type="submit">{{ _("Log in") }}</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% else %}
+
+<ul class="nav nav-tabs mb-3" role="tablist">
+  <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-matches">{{ _("Manage Matches") }}</button></li>
+  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-users">{{ _("Manage Users") }}</button></li>
+</ul>
+
+<div class="tab-content">
+  <div class="tab-pane fade show active" id="tab-matches">
+    {% for m in matches %}
+    <div class="card mb-2">
+      <div class="card-body">
+        <span class="accent small">{{ round_label(m.round) }} — {{ m.id }}</span>
+        <div class="row g-3 mt-1">
+          <div class="col-md-6">
+            <form method="post" action="{{ url_for('admin') }}" class="row g-2">
+              <input type="hidden" name="action" value="edit_match">
+              <input type="hidden" name="match_id" value="{{ m.id }}">
+              <div class="col-12"><strong>{{ _("Edit Match") }}</strong></div>
+              <div class="col-6"><input class="form-control form-control-sm" name="home_team" placeholder="{{ _('Home team') }}" value="{{ m.home_team or '' }}"></div>
+              <div class="col-6"><input class="form-control form-control-sm" name="away_team" placeholder="{{ _('Away team') }}" value="{{ m.away_team or '' }}"></div>
+              <div class="col-12">
+                <label class="small text-muted">{{ _("Kickoff") }} ({{ tz_label }})</label>
+                <input class="form-control form-control-sm" type="datetime-local" name="kickoff" value="{{ utc_iso_to_local_input(m.kickoff_utc) }}">
+              </div>
+              <div class="col-12"><button class="btn btn-sm btn-wc" type="submit">{{ _("Save") }}</button></div>
+            </form>
+          </div>
+          <div class="col-md-6">
+            <form method="post" action="{{ url_for('admin') }}" class="row g-2">
+              <input type="hidden" name="action" value="enter_result">
+              <input type="hidden" name="match_id" value="{{ m.id }}">
+              <div class="col-12"><strong>{{ _("Enter Result") }}</strong></div>
+              <div class="col-6"><input class="form-control form-control-sm" type="number" min="0" name="home_score" placeholder="{{ m.home_team or _('Home team') }}" value="{{ m.home_score if m.home_score is not none else '' }}"></div>
+              <div class="col-6"><input class="form-control form-control-sm" type="number" min="0" name="away_score" placeholder="{{ m.away_team or _('Away team') }}" value="{{ m.away_score if m.away_score is not none else '' }}"></div>
+              <div class="col-12">
+                <select class="form-select form-select-sm" name="advanced_team">
+                  <option value="">{{ _("Who advances?") }}</option>
+                  {% if m.home_team %}<option value="{{ m.home_team }}" {{ 'selected' if m.advanced_team == m.home_team }}>{{ m.home_team }}</option>{% endif %}
+                  {% if m.away_team %}<option value="{{ m.away_team }}" {{ 'selected' if m.advanced_team == m.away_team }}>{{ m.away_team }}</option>{% endif %}
+                </select>
+              </div>
+              <div class="col-12"><button class="btn btn-sm btn-wc" type="submit">{{ _("Save") }}</button></div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="tab-pane fade" id="tab-users">
+    <div class="row">
+      <div class="col-md-5">
+        <div class="card p-3 mb-3">
+          <h6>{{ _("Add User") }}</h6>
+          <form method="post" action="{{ url_for('admin') }}">
+            <input type="hidden" name="action" value="add_user">
+            <input class="form-control form-control-sm mb-2" name="username" placeholder="{{ _('Username') }}" required>
+            <input class="form-control form-control-sm mb-2" type="email" name="email" placeholder="{{ _('Email') }}">
+            <input class="form-control form-control-sm mb-2" type="text" name="password" placeholder="{{ _('Password') }}" required>
+            <button class="btn btn-sm btn-wc" type="submit">{{ _("Add User") }}</button>
+          </form>
+        </div>
+      </div>
+      <div class="col-md-7">
+        <table class="table table-sm">
+          <thead><tr><th>{{ _("Player") }}</th><th>{{ _("Email") }}</th><th></th></tr></thead>
+          <tbody>
+            {% for uname, rec in users.items() %}
+            <tr>
+              <td>{{ uname }}</td>
+              <td class="small text-muted">{{ rec.email or '' }}</td>
+              <td class="text-end">
+                <form method="post" action="{{ url_for('admin') }}" class="d-inline">
+                  <input type="hidden" name="action" value="reset_user_password">
+                  <input type="hidden" name="username" value="{{ uname }}">
+                  <button class="btn btn-sm btn-outline-light" type="submit">{{ _("Reset Password") }}</button>
+                </form>
+                <form method="post" action="{{ url_for('admin') }}" class="d-inline"
+                      onsubmit="return confirm('{{ _('Remove') }} {{ uname }}?')">
+                  <input type="hidden" name="action" value="remove_user">
+                  <input type="hidden" name="username" value="{{ uname }}">
+                  <button class="btn btn-sm btn-outline-danger" type="submit">{{ _("Remove") }}</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
