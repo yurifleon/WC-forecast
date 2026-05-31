@@ -116,6 +116,21 @@ def feed_label_pair(match):
             f"{translate(word)} {_short_id(bot)}")
 
 
+def slot_label(match, side):
+    """Display label for one slot of a match. Precedence:
+    real team -> origin slot code (R32) -> feed-label placeholder (R16+) -> 'TBD'.
+    `side` is 'home' or 'away'. Requires app context (uses translate())."""
+    team = match.get(f"{side}_team")
+    if team:
+        return team
+    origin = match.get(f"{side}_origin")
+    if origin:
+        return origin
+    top_lbl, bot_lbl = feed_label_pair(match)
+    feed = top_lbl if side == "home" else bot_lbl
+    return feed or translate("TBD")
+
+
 DEFAULT_DATA = {
     "users": {},
     "admin_password": "change-me-admin",
@@ -466,6 +481,7 @@ def inject_i18n_helpers():
         "is_locked": is_locked,
         "is_predictable": is_predictable,
         "has_teams": has_teams,
+        "slot_label": slot_label,
         "compute_points": compute_points,
     }
 
@@ -605,15 +621,13 @@ def leaderboard():
 
 def _bracket_view(match):
     """Resolve a match into display fields for the bracket: real team names when
-    set, else feed-label placeholders."""
-    top_lbl, bot_lbl = feed_label_pair(match)
-    home, away = match.get("home_team"), match.get("away_team")
+    set, else origin slot codes (R32), else feed-label placeholders."""
     return {
         **match,
-        "home_display": home or top_lbl or translate("TBD"),
-        "away_display": away or bot_lbl or translate("TBD"),
-        "home_is_placeholder": not home,
-        "away_is_placeholder": not away,
+        "home_display": slot_label(match, "home"),
+        "away_display": slot_label(match, "away"),
+        "home_is_placeholder": not match.get("home_team"),
+        "away_is_placeholder": not match.get("away_team"),
     }
 
 
