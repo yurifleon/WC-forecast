@@ -134,7 +134,7 @@ python -c "
 from app import app
 with app.test_request_context('/'):
     from app import feed_label_pair
-    assert feed_label_pair({'id':'r16-3','round':'r16'}) == ('Winner R16-5','Winner R16-6'), feed_label_pair({'id':'r16-3','round':'r16'})
+    assert feed_label_pair({'id':'r16-3','round':'r16'}) == ('Winner R32-5','Winner R32-6'), feed_label_pair({'id':'r16-3','round':'r16'})
     assert feed_label_pair({'id':'third-1','round':'third'}) == ('Loser SF-1','Loser SF-2')
     assert feed_label_pair({'id':'r32-1','round':'r32'}) == (None, None)
 print('feed_label_pair OK')
