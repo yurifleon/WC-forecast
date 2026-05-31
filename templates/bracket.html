@@ -1,31 +1,42 @@
 {% extends "base.html" %}
+
+{% macro match_card(m, show_champion=false) %}
+<div class="card">
+  <div class="card-body p-2 small">
+    <div class="bracket-slot{{ ' text-muted fst-italic' if m.home_is_placeholder }}{{ ' fw-bold accent' if m.advanced_team and m.advanced_team == m.home_team }}">
+      {{ m.home_display }}{% if m.home_score is not none %}<span class="float-end">{{ m.home_score }}</span>{% endif %}
+    </div>
+    <div class="bracket-slot{{ ' text-muted fst-italic' if m.away_is_placeholder }}{{ ' fw-bold accent' if m.advanced_team and m.advanced_team == m.away_team }}">
+      {{ m.away_display }}{% if m.away_score is not none %}<span class="float-end">{{ m.away_score }}</span>{% endif %}
+    </div>
+    {% if show_champion and m.advanced_team %}
+    <div class="text-center mt-1">🏆 <span class="accent">{{ _("Champion") }}: {{ m.advanced_team }}</span></div>
+    {% endif %}
+  </div>
+</div>
+{% endmacro %}
+
 {% block content %}
 <h3 class="mb-3">{{ _("Tournament Bracket") }}</h3>
-<div class="row flex-nowrap" style="overflow-x:auto">
-  {% for rnd in order %}
-  <div class="col" style="min-width:230px">
-    <h6 class="accent text-center">{{ round_label(rnd) }}</h6>
-    {% for m in by_round.get(rnd, []) %}
-    {% set champ = m.advanced_team %}
-    <div class="card mb-2">
-      <div class="card-body p-2 small">
-        {% if has_teams(m) %}
-          <div class="{{ 'fw-bold accent' if champ == m.home_team }}">{{ m.home_team }}
-            {% if m.home_score is not none %}<span class="float-end">{{ m.home_score }}</span>{% endif %}
-          </div>
-          <div class="{{ 'fw-bold accent' if champ == m.away_team }}">{{ m.away_team }}
-            {% if m.away_score is not none %}<span class="float-end">{{ m.away_score }}</span>{% endif %}
-          </div>
-          {% if rnd == 'final' and champ %}
-            <div class="text-center mt-1">🏆 <span class="accent">{{ _("Champion") }}: {{ champ }}</span></div>
-          {% endif %}
-        {% else %}
-          <div class="text-muted text-center">{{ _("TBD") }}</div>
-        {% endif %}
-      </div>
+
+<div class="bracket">
+  {% for col in columns %}
+  {% set is_feeder = col.round in ['r32', 'r16', 'qf', 'sf'] %}
+  <div class="round round-{{ col.round }}">
+    <h6 class="accent text-center mb-3">{{ round_label(col.round) }}</h6>
+    {% for m in col.matches %}
+    <div class="bracket-match{% if is_feeder %}{{ ' feeder-top' if loop.index is odd else ' feeder-bottom' }}{% endif %}">
+      {{ match_card(m, show_champion=(col.round == 'final')) }}
     </div>
     {% endfor %}
   </div>
   {% endfor %}
 </div>
+
+{% if third %}
+<div class="third-place mt-4">
+  <h6 class="accent">{{ round_label('third') }}</h6>
+  <div style="max-width:210px">{{ match_card(third) }}</div>
+</div>
+{% endif %}
 {% endblock %}
