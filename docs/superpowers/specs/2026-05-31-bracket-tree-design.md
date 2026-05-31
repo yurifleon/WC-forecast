@@ -50,10 +50,13 @@ only until a slot's team is filled.
 
 ## Template + CSS (`templates/bracket.html`, `base.html`)
 
-- **Layout:** `.bracket` is a flex row; each `.round` is
-  `display:flex; flex-direction:column; justify-content:space-around` so cards
-  auto-center against their feeding pair. Horizontal scroll (`overflow-x:auto`) is
-  preserved.
+- **Layout:** `.bracket` is a flex row; each `.round` is a flex column and every
+  `.bracket-match` is `flex:1 1 0; justify-content:center`, so equal-height match
+  cells center their connector stubs deterministically — each later match lines up
+  against its feeding pair. (This equal-flex approach replaced the originally
+  sketched `justify-content:space-around`; it aligns more robustly. All columns
+  share a height via the flex default `align-items:stretch`, which is load-bearing.)
+  Horizontal scroll (`overflow-x:auto`) is preserved.
 - **Connectors:** pure-CSS elbow connectors via `::before`/`::after` border
   pseudo-elements on the match cards, drawn for the receiving rounds
   `r16, qf, sf, final`. No JavaScript. CSS lives in the `base.html` `<style>` block,
