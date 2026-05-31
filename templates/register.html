@@ -6,16 +6,19 @@
       <h3 class="mb-3">{{ _("Create your account") }}</h3>
       <form method="post" action="{{ url_for('register') }}">
         <div class="mb-3">
-          <label class="form-label">{{ _("Create your username") }}</label>
-          <input class="form-control" name="username" autofocus required>
+          <label for="reg-username" class="form-label">{{ _("Create your username") }}</label>
+          <input id="reg-username" class="form-control" name="username"
+                 placeholder="{{ _('Username') }}" autofocus required>
         </div>
         <div class="mb-3">
-          <label class="form-label">{{ _("Email") }}</label>
-          <input class="form-control" type="email" name="email">
+          <label for="reg-email" class="form-label">{{ _("Email") }} <span class="text-muted small">({{ _("optional") }})</span></label>
+          <input id="reg-email" class="form-control" type="email" name="email"
+                 placeholder="{{ _('Email') }}">
         </div>
         <div class="mb-3">
-          <label class="form-label">{{ _("Password") }}</label>
-          <input class="form-control" type="password" name="password" required>
+          <label for="reg-password" class="form-label">{{ _("Password") }}</label>
+          <input id="reg-password" class="form-control" type="password" name="password"
+                 placeholder="{{ _('Password') }}" required>
         </div>
         <button class="btn btn-wc w-100" type="submit">{{ _("Register") }}</button>
       </form>

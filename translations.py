@@ -19,6 +19,7 @@ SPANISH_TRANSLATIONS = {
     "Username": "Usuario",
     "Password": "Contraseña",
     "Email": "Correo",
+    "optional": "opcional",
 
     # Home / auth
     "Sign in": "Iniciar sesión",
