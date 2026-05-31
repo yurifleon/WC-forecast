@@ -81,8 +81,19 @@ Lang resolution: user `preferred_lang` → `session["lang"]` → `Accept-Languag
 **Routes:** `/` (login), `/register`, `/logout`, `/dashboard`, `/predict/<id>`,
 `/leaderboard`, `/bracket`, `/admin`, `/set-language/<lang>`.
 
-**Round sorting:** `ROUND_ORDER` puts Final first (deepest active round on top),
-unknown rounds last (99). Same ordering on dashboard and admin.
+**Round sorting:** `ROUND_ORDER = {r32:0 … final:5}` sorts matches **chronologically**
+(Round of 32 first → Final last); unknown rounds last (99). `sorted_matches()` breaks
+ties by the numeric id suffix (`r32-1…r32-16`, not lexicographic). Dashboard, admin,
+and the `/bracket` `order` list all use this same r32→final sequence.
+
+**Neutral-venue framing:** WC knockouts are at neutral sites, so the UI shows no
+home/away (local/visitor) labels (commit `15adefb`). The fields are still named
+`home_team`/`away_team`/`home_score`/`away_score` internally — that's storage only;
+don't reintroduce home/away wording in templates.
+
+**Templates:** Jinja2 + Bootstrap 5.3 dark theme, **no custom JS**. Keep logic in
+Python helpers and inject view helpers via the `inject_i18n_helpers` context processor
+(`_`, `round_label`, `is_locked`, `is_predictable`, `has_teams`, `compute_points`).
 
 ## Code style
 
