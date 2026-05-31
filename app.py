@@ -69,6 +69,35 @@ ROUND_LABELS = {
     "sf": "Semi-final", "third": "Third-place Play-off", "final": "Final",
 }
 
+# Compact round codes for bracket feed labels ("Winner R32-1"). Not translated —
+# language-neutral and short enough for a narrow bracket column.
+SHORT = {"r32": "R32", "r16": "R16", "qf": "QF", "sf": "SF"}
+
+# Standard bracket pairing: match k of a round is fed by matches (2k-1, 2k) of the
+# previous round; the third-place play-off and the final both draw from the two
+# semifinals (losers and winners respectively).
+_FEEDER_PREV = {"r16": "r32", "qf": "r16", "sf": "qf", "final": "sf", "third": "sf"}
+
+
+def feeders(match):
+    """Return (word, top_feeder_id, bottom_feeder_id) for a match's two slots, or
+    None for Round of 32 / unknown rounds (no feeders). `word` is the untranslated
+    key "Winner" or "Loser". Pure: derived from the numeric id suffix, no app
+    context required."""
+    rnd = match.get("round")
+    prev = _FEEDER_PREV.get(rnd)
+    if not prev:
+        return None
+    word = "Loser" if rnd == "third" else "Winner"
+    if rnd in ("final", "third"):
+        return (word, "sf-1", "sf-2")
+    try:
+        k = int(str(match["id"]).rsplit("-", 1)[-1])
+    except (ValueError, KeyError):
+        return None
+    return (word, f"{prev}-{2 * k - 1}", f"{prev}-{2 * k}")
+
+
 DEFAULT_DATA = {
     "users": {},
     "admin_password": "change-me-admin",
