@@ -99,6 +99,7 @@ SPANISH_TRANSLATIONS = {
     "single match": "partido único",
     "vs": "vs",
     "Final score": "Marcador final",
+    "Teams": "Equipos",
     "Enter whole numbers for both scores.": "Ingresa números enteros para ambos marcadores.",
     "Add User": "Agregar Usuario",
     "User created.": "Usuario creado.",

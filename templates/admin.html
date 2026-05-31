@@ -32,14 +32,13 @@
           <input type="hidden" name="action" value="save_match">
           <input type="hidden" name="match_id" value="{{ m.id }}">
 
-          <div class="col-md-4">
-            <label class="small text-muted">{{ _("Home team") }}</label>
-            <input class="form-control form-control-sm" name="home_team" placeholder="{{ _('Home team') }}" value="{{ m.home_team or '' }}">
-          </div>
-          <div class="col-md-1 text-center pb-1 fw-bold">{{ _("vs") }}</div>
-          <div class="col-md-4">
-            <label class="small text-muted">{{ _("Away team") }}</label>
-            <input class="form-control form-control-sm" name="away_team" placeholder="{{ _('Away team') }}" value="{{ m.away_team or '' }}">
+          <div class="col-md-9">
+            <label class="small text-muted">{{ _("Teams") }}</label>
+            <div class="d-flex align-items-center gap-2">
+              <input class="form-control form-control-sm" name="home_team" placeholder="" value="{{ m.home_team or '' }}">
+              <span class="fw-bold">{{ _("vs") }}</span>
+              <input class="form-control form-control-sm" name="away_team" placeholder="" value="{{ m.away_team or '' }}">
+            </div>
           </div>
           <div class="col-md-3">
             <label class="small text-muted">{{ _("Kickoff") }} ({{ tz_label }})</label>
@@ -49,9 +48,11 @@
           <div class="col-md-4">
             <label class="small text-muted">{{ _("Final score") }}</label>
             <div class="d-flex align-items-center gap-2">
-              <input class="form-control form-control-sm text-center" type="number" min="0" name="home_score" value="{{ m.home_score if m.home_score is not none else '' }}">
+              <input class="form-control form-control-sm text-center" type="number" min="0" name="home_score"
+                     placeholder="{{ m.home_team or '' }}" value="{{ m.home_score if m.home_score is not none else '' }}">
               <span class="fw-bold">-</span>
-              <input class="form-control form-control-sm text-center" type="number" min="0" name="away_score" value="{{ m.away_score if m.away_score is not none else '' }}">
+              <input class="form-control form-control-sm text-center" type="number" min="0" name="away_score"
+                     placeholder="{{ m.away_team or '' }}" value="{{ m.away_score if m.away_score is not none else '' }}">
             </div>
           </div>
           <div class="col-md-4">
