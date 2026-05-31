@@ -1,0 +1,31 @@
+# Render Blueprint — provisions the WC Forecast web service + persistent disk.
+# Deploy: Render Dashboard → New → Blueprint → connect yurifleon/WC-forecast.
+# Render reads this file and creates everything below in one step.
+services:
+  - type: web
+    name: wc-forecast
+    runtime: python
+    plan: starter                 # required for the persistent disk below
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
+    healthCheckPath: /
+    autoDeploy: true              # redeploy on every push to the connected branch
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.3
+      - key: SECRET_KEY
+        generateValue: true       # Render generates a strong secret
+      - key: ADMIN_PASSWORD
+        sync: false               # you set this in the dashboard (not stored in git)
+      - key: DATA_DIR
+        value: /data              # points data.json at the persistent disk
+      - key: DISPLAY_TZ
+        value: America/Lima
+      - key: DISPLAY_TZ_LABEL
+        value: LIM
+      - key: MAX_USERS
+        value: "20"
+    disk:
+      name: wc-data
+      mountPath: /data            # must match DATA_DIR above
+      sizeGB: 1                   # data.json is tiny; 1GB is the minimum

@@ -57,14 +57,21 @@ team names, kickoff times, and results as the tournament unfolds.
 
 ## Deploy (Render)
 
-`Procfile` runs gunicorn. Push to the branch Render watches:
+This repo ships a **`render.yaml` blueprint** that provisions the web service, a
+persistent disk at `/data`, and all env vars in one step:
 
-```bash
-git push origin master
-```
+1. Render Dashboard → **New** → **Blueprint** → connect `yurifleon/WC-forecast`.
+2. Render reads `render.yaml` and creates the **Starter** service + 1GB disk.
+3. When prompted, set **`ADMIN_PASSWORD`** (the only `sync: false` var); `SECRET_KEY`
+   is auto-generated.
+4. Apply → first deploy runs `gunicorn` and seeds the bracket on boot.
 
-Mount a persistent disk at `/data` and set `DATA_DIR=/data`. Back up by copying
-`data.json` periodically (no automated backups).
+`autoDeploy` is on, so every push to the connected branch redeploys. The disk keeps
+users, predictions, and results across deploys. Back up by copying `data.json` from
+the disk periodically (no automated backups).
+
+> The Starter plan is required because Render's **free plan has no persistent disk** —
+> on free, `data.json` (and all accounts) is wiped on every deploy.
 
 ## Project layout
 
