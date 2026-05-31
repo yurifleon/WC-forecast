@@ -563,14 +563,31 @@ def leaderboard():
     return render_template("leaderboard.html", rows=rows, matches=matches)
 
 
+def _bracket_view(match):
+    """Resolve a match into display fields for the bracket: real team names when
+    set, else feed-label placeholders."""
+    top_lbl, bot_lbl = feed_label_pair(match)
+    home, away = match.get("home_team"), match.get("away_team")
+    return {
+        **match,
+        "home_display": home or top_lbl or translate("TBD"),
+        "away_display": away or bot_lbl or translate("TBD"),
+        "home_is_placeholder": not home,
+        "away_is_placeholder": not away,
+    }
+
+
 @app.route("/bracket")
 def bracket():
     data = load_data()
-    by_round = {r: [] for r in ROUND_LABELS}
-    for m in sorted(data["matches"], key=lambda x: x["id"]):
-        by_round.setdefault(m["round"], []).append(m)
-    order = ["r32", "r16", "qf", "sf", "third", "final"]
-    return render_template("bracket.html", by_round=by_round, order=order)
+    tree_order = ["r32", "r16", "qf", "sf", "final"]
+    columns = []
+    for rnd in tree_order:
+        rnd_matches = sorted_matches([m for m in data["matches"] if m.get("round") == rnd])
+        columns.append({"round": rnd, "matches": [_bracket_view(m) for m in rnd_matches]})
+    third_match = next((m for m in data["matches"] if m.get("round") == "third"), None)
+    third = _bracket_view(third_match) if third_match else None
+    return render_template("bracket.html", columns=columns, third=third)
 
 
 @app.route("/set-language/<lang>")
