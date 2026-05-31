@@ -562,28 +562,33 @@ def admin():
             flash(translate("Admin access required."), "danger")
             return redirect(url_for("admin"))
 
-        if action == "edit_match":
+        if action == "save_match":
+            # One single match per pairing: teams, kickoff, and (optionally) the
+            # result are all saved in a single form. Scores left blank => not yet
+            # played (None); filled => the final scoreline.
             mid = request.form.get("match_id")
             m = next((x for x in data["matches"] if x["id"] == mid), None)
             if m:
                 m["home_team"] = (request.form.get("home_team") or "").strip() or None
                 m["away_team"] = (request.form.get("away_team") or "").strip() or None
                 m["kickoff_utc"] = parse_admin_kickoff(request.form.get("kickoff"))
-                flash(translate("Match updated."), "success")
 
-        elif action == "enter_result":
-            mid = request.form.get("match_id")
-            m = next((x for x in data["matches"] if x["id"] == mid), None)
-            if m:
-                try:
-                    m["home_score"] = int(request.form["home_score"])
-                    m["away_score"] = int(request.form["away_score"])
-                except (ValueError, KeyError):
-                    flash(translate("Enter whole numbers for both scores."), "warning")
-                    return redirect(url_for("admin"))
+                scores = {}
+                for side in ("home", "away"):
+                    raw = (request.form.get(f"{side}_score") or "").strip()
+                    if raw == "":
+                        scores[side] = None
+                    else:
+                        try:
+                            scores[side] = int(raw)
+                        except ValueError:
+                            flash(translate("Enter whole numbers for both scores."), "warning")
+                            return redirect(url_for("admin"))
+                m["home_score"], m["away_score"] = scores["home"], scores["away"]
+
                 adv = (request.form.get("advanced_team") or "").strip()
                 m["advanced_team"] = adv if adv in (m["home_team"], m["away_team"]) else None
-                flash(translate("Result saved."), "success")
+                flash(translate("Match saved."), "success")
 
         elif action == "add_user":
             uname = request.form.get("username", "").strip().lower()
