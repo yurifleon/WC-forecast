@@ -61,8 +61,9 @@ TIERS = {
     "final": {"exact": 10, "gd": 7, "result": 5, "advance": 4},
 }
 
-# Display order: deepest active round first (Final at top), unknown rounds last.
-ROUND_ORDER = {"final": 0, "third": 1, "sf": 2, "qf": 3, "r16": 4, "r32": 5}
+# Chronological display order: Round of 32 first → Final last. Unknown rounds last.
+# (Third-place play-off is played just before the Final.)
+ROUND_ORDER = {"r32": 0, "r16": 1, "qf": 2, "sf": 3, "third": 4, "final": 5}
 ROUND_LABELS = {
     "r32": "Round of 32", "r16": "Round of 16", "qf": "Quarter-final",
     "sf": "Semi-final", "third": "Third-place Play-off", "final": "Final",
@@ -326,8 +327,19 @@ def build_leaderboard(data):
     return rows
 
 
+def _match_sort_key(m):
+    """Sort by round (chronological) then by the numeric suffix of the id
+    (so r32-1 … r32-16 order numerically, not lexicographically as 1, 10, 2…)."""
+    rnd = ROUND_ORDER.get(m.get("round"), 99)
+    try:
+        num = int(str(m["id"]).rsplit("-", 1)[-1])
+    except (ValueError, KeyError):
+        num = 0
+    return (rnd, num)
+
+
 def sorted_matches(matches):
-    return sorted(matches, key=lambda m: (ROUND_ORDER.get(m.get("round"), 99), m["id"]))
+    return sorted(matches, key=_match_sort_key)
 
 
 # ---------------------------------------------------------------------------
