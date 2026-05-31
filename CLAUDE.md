@@ -83,8 +83,23 @@ Lang resolution: user `preferred_lang` → `session["lang"]` → `Accept-Languag
 
 **Round sorting:** `ROUND_ORDER = {r32:0 … final:5}` sorts matches **chronologically**
 (Round of 32 first → Final last); unknown rounds last (99). `sorted_matches()` breaks
-ties by the numeric id suffix (`r32-1…r32-16`, not lexicographic). Dashboard, admin,
-and the `/bracket` `order` list all use this same r32→final sequence.
+ties by the numeric id suffix (`r32-1…r32-16`, not lexicographic). Dashboard and admin
+render all rounds via `sorted_matches()` in this sequence; `/bracket` uses its own
+tree layout (see Bracket view).
+
+**Bracket view (`/bracket`):** renders the knockout as a **winner-flow tree**, not flat
+columns. The feeding relationship is **derived, not stored** — `feeders(match)` maps a
+match to the two previous-round matches feeding it (match *k* ← `(2k-1, 2k)`;
+`final`/`third` ← `sf-1`/`sf-2`, winners/losers respectively). `feed_label_pair()` turns
+that into placeholder labels (`Winner R32-1`, `Loser SF-2`, via `ROUND_CODE_SHORT`)
+shown in empty downstream slots until the admin fills real teams. The route builds
+`columns` over `["r32","r16","qf","sf","final"]` (each match resolved through
+`_bracket_view`, which adds `*_display`/`*_is_placeholder` fields) and passes `third`
+**separately** as a standalone card (it's fed by SF losers, so it sits outside the
+winner tree). Connectors are **pure CSS** — `:is()` elbow pseudo-elements in
+`base.html`; alignment relies on equal-flex match cells + the flex-default
+`align-items:stretch` (load-bearing). Design + plan: `docs/superpowers/specs/` and
+`docs/superpowers/plans/`.
 
 **Neutral-venue framing:** WC knockouts are at neutral sites, so the UI shows no
 home/away (local/visitor) labels (commit `15adefb`). The fields are still named
