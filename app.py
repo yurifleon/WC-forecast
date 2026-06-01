@@ -138,28 +138,48 @@ DEFAULT_DATA = {
     "predictions": {},
 }
 
-# Real FIFA World Cup 2026 Round-of-32 schedule (source: round_of_32_schedule.md +
-# schedule_bracket.md). FIFA's match numbering is bracket-positional, so M73->r32-1 …
-# M88->r32-16 makes the bracket tree show true future matchups. kickoff_utc values are
-# converted from each host city's IANA zone (DST-correct for late-June/early-July 2026;
-# Mexico observes no DST) and are re-derived + asserted in this task's test.
-R32_SCHEDULE = {
-    "r32-1":  {"home_origin": "2A", "away_origin": "2B",            "kickoff_utc": "2026-06-28T19:00:00+00:00"},
-    "r32-2":  {"home_origin": "1E", "away_origin": "3rd A/B/C/D/F", "kickoff_utc": "2026-06-29T20:30:00+00:00"},
-    "r32-3":  {"home_origin": "1F", "away_origin": "2C",            "kickoff_utc": "2026-06-30T01:00:00+00:00"},
-    "r32-4":  {"home_origin": "1C", "away_origin": "2F",            "kickoff_utc": "2026-06-29T17:00:00+00:00"},
-    "r32-5":  {"home_origin": "1I", "away_origin": "3rd C/D/F/G/H", "kickoff_utc": "2026-06-29T21:00:00+00:00"},
-    "r32-6":  {"home_origin": "2E", "away_origin": "2I",            "kickoff_utc": "2026-06-30T17:00:00+00:00"},
-    "r32-7":  {"home_origin": "1A", "away_origin": "3rd C/E/F/H/I", "kickoff_utc": "2026-07-01T01:00:00+00:00"},
-    "r32-8":  {"home_origin": "1L", "away_origin": "3rd E/H/I/J/K", "kickoff_utc": "2026-06-30T16:00:00+00:00"},
-    "r32-9":  {"home_origin": "1D", "away_origin": "3rd B/E/F/I/J", "kickoff_utc": "2026-07-01T00:00:00+00:00"},
-    "r32-10": {"home_origin": "1G", "away_origin": "3rd A/E/H/I/J", "kickoff_utc": "2026-07-01T20:00:00+00:00"},
-    "r32-11": {"home_origin": "2K", "away_origin": "2L",            "kickoff_utc": "2026-07-02T23:00:00+00:00"},
-    "r32-12": {"home_origin": "1H", "away_origin": "2J",            "kickoff_utc": "2026-07-02T19:00:00+00:00"},
-    "r32-13": {"home_origin": "1B", "away_origin": "3rd E/F/G/I/J", "kickoff_utc": "2026-07-03T03:00:00+00:00"},
-    "r32-14": {"home_origin": "1J", "away_origin": "2H",            "kickoff_utc": "2026-07-03T22:00:00+00:00"},
-    "r32-15": {"home_origin": "1K", "away_origin": "3rd D/E/I/J/L", "kickoff_utc": "2026-07-04T01:30:00+00:00"},
-    "r32-16": {"home_origin": "2D", "away_origin": "2G",            "kickoff_utc": "2026-07-03T18:00:00+00:00"},
+# Real FIFA World Cup 2026 knockout schedule (sources: round_of_32_schedule.md,
+# round_of_16_and_on_schedule.md, schedule_bracket.md). FIFA's match numbering is
+# bracket-positional, so M73->r32-1 … M104->final-1 maps onto the app's positional
+# pairing. kickoff_utc is converted from each host city's IANA zone (the listed clock
+# is venue-local; mismatched tz tags like Houston "ET" / Mexico City "CT" are ignored)
+# and re-derived + asserted in this task's test. R32 entries carry group-stage origin
+# slots; R16+ rely on the bracket feed labels ("Winner R32-1") instead.
+MATCH_SCHEDULE = {
+    # Round of 32 (origins + kickoff + venue)
+    "r32-1":  {"home_origin": "2A", "away_origin": "2B",            "kickoff_utc": "2026-06-28T19:00:00+00:00", "venue": "Los Angeles, USA"},
+    "r32-2":  {"home_origin": "1E", "away_origin": "3rd A/B/C/D/F", "kickoff_utc": "2026-06-29T20:30:00+00:00", "venue": "Boston, USA"},
+    "r32-3":  {"home_origin": "1F", "away_origin": "2C",            "kickoff_utc": "2026-06-30T01:00:00+00:00", "venue": "Monterrey, Mexico"},
+    "r32-4":  {"home_origin": "1C", "away_origin": "2F",            "kickoff_utc": "2026-06-29T17:00:00+00:00", "venue": "Houston, USA"},
+    "r32-5":  {"home_origin": "1I", "away_origin": "3rd C/D/F/G/H", "kickoff_utc": "2026-06-29T21:00:00+00:00", "venue": "New York/New Jersey, USA"},
+    "r32-6":  {"home_origin": "2E", "away_origin": "2I",            "kickoff_utc": "2026-06-30T17:00:00+00:00", "venue": "Dallas, USA"},
+    "r32-7":  {"home_origin": "1A", "away_origin": "3rd C/E/F/H/I", "kickoff_utc": "2026-07-01T01:00:00+00:00", "venue": "Mexico City, Mexico"},
+    "r32-8":  {"home_origin": "1L", "away_origin": "3rd E/H/I/J/K", "kickoff_utc": "2026-06-30T16:00:00+00:00", "venue": "Atlanta, USA"},
+    "r32-9":  {"home_origin": "1D", "away_origin": "3rd B/E/F/I/J", "kickoff_utc": "2026-07-01T00:00:00+00:00", "venue": "San Francisco Bay Area, USA"},
+    "r32-10": {"home_origin": "1G", "away_origin": "3rd A/E/H/I/J", "kickoff_utc": "2026-07-01T20:00:00+00:00", "venue": "Seattle, USA"},
+    "r32-11": {"home_origin": "2K", "away_origin": "2L",            "kickoff_utc": "2026-07-02T23:00:00+00:00", "venue": "Toronto, Canada"},
+    "r32-12": {"home_origin": "1H", "away_origin": "2J",            "kickoff_utc": "2026-07-02T19:00:00+00:00", "venue": "Los Angeles, USA"},
+    "r32-13": {"home_origin": "1B", "away_origin": "3rd E/F/G/I/J", "kickoff_utc": "2026-07-03T03:00:00+00:00", "venue": "Vancouver, Canada"},
+    "r32-14": {"home_origin": "1J", "away_origin": "2H",            "kickoff_utc": "2026-07-03T22:00:00+00:00", "venue": "Miami, USA"},
+    "r32-15": {"home_origin": "1K", "away_origin": "3rd D/E/I/J/L", "kickoff_utc": "2026-07-04T01:30:00+00:00", "venue": "Kansas City, USA"},
+    "r32-16": {"home_origin": "2D", "away_origin": "2G",            "kickoff_utc": "2026-07-03T18:00:00+00:00", "venue": "Dallas, USA"},
+    # Round of 16 -> Final (kickoff + venue; origins omitted — feed labels render "Winner M…")
+    "r16-1":  {"kickoff_utc": "2026-07-05T16:00:00+00:00", "venue": "Philadelphia, USA"},
+    "r16-2":  {"kickoff_utc": "2026-07-05T22:00:00+00:00", "venue": "Houston, USA"},
+    "r16-3":  {"kickoff_utc": "2026-07-06T21:00:00+00:00", "venue": "Mexico City, Mexico"},
+    "r16-4":  {"kickoff_utc": "2026-07-06T19:00:00+00:00", "venue": "Arlington (Dallas), USA"},
+    "r16-5":  {"kickoff_utc": "2026-07-07T16:00:00+00:00", "venue": "Atlanta, USA"},
+    "r16-6":  {"kickoff_utc": "2026-07-08T02:30:00+00:00", "venue": "Seattle, USA"},
+    "r16-7":  {"kickoff_utc": "2026-07-08T19:00:00+00:00", "venue": "Miami, USA"},
+    "r16-8":  {"kickoff_utc": "2026-07-09T00:00:00+00:00", "venue": "Guadalajara, Mexico"},
+    "qf-1":   {"kickoff_utc": "2026-07-09T21:00:00+00:00", "venue": "Boston, USA"},
+    "qf-2":   {"kickoff_utc": "2026-07-11T01:00:00+00:00", "venue": "Los Angeles, USA"},
+    "qf-3":   {"kickoff_utc": "2026-07-11T21:00:00+00:00", "venue": "Kansas City, USA"},
+    "qf-4":   {"kickoff_utc": "2026-07-11T20:00:00+00:00", "venue": "Miami, USA"},
+    "sf-1":   {"kickoff_utc": "2026-07-15T01:00:00+00:00", "venue": "Arlington (Dallas), USA"},
+    "sf-2":   {"kickoff_utc": "2026-07-16T00:00:00+00:00", "venue": "Atlanta, USA"},
+    "third-1":{"kickoff_utc": "2026-07-18T19:00:00+00:00", "venue": "Miami, USA"},
+    "final-1":{"kickoff_utc": "2026-07-19T19:00:00+00:00", "venue": "East Rutherford (MetLife Stadium), USA"},
 }
 
 
@@ -175,7 +195,7 @@ def _seed_matches():
     for rnd, count in plan:
         for i in range(1, count + 1):
             mid = f"{rnd}-{i}"
-            sched = R32_SCHEDULE.get(mid, {})
+            sched = MATCH_SCHEDULE.get(mid, {})
             matches.append({
                 "id": mid,
                 "round": rnd,
@@ -183,6 +203,7 @@ def _seed_matches():
                 "away_team": None,
                 "home_origin": sched.get("home_origin"),  # R32 slot code; None for R16+
                 "away_origin": sched.get("away_origin"),
+                "venue": sched.get("venue"),               # host city, or None
                 "kickoff_utc": sched.get("kickoff_utc"),   # tz-aware UTC ISO, or None
                 "home_score": None,
                 "away_score": None,
@@ -230,7 +251,7 @@ def migrate_data(data):
     # Backfill missing match fields.
     for m in data["matches"]:
         for field in ("home_team", "away_team", "home_origin", "away_origin",
-                      "kickoff_utc", "home_score", "away_score", "advanced_team"):
+                      "venue", "kickoff_utc", "home_score", "away_score", "advanced_team"):
             if field not in m:
                 m[field] = None
                 changed = True
@@ -238,16 +259,16 @@ def migrate_data(data):
             m["round"] = "r32"
             changed = True
 
-    # Backfill the real R32 schedule (origins + kickoff) where still empty.
+    # Backfill the real knockout schedule (origins/kickoff/venue) where still empty.
     # Fill-if-empty + idempotent: never clobber admin-entered teams/scores or a
     # manually-set kickoff. Real home_team/away_team are never touched here.
     for m in data["matches"]:
-        sched = R32_SCHEDULE.get(m["id"])
+        sched = MATCH_SCHEDULE.get(m["id"])
         if not sched:
             continue
-        for field in ("home_origin", "away_origin", "kickoff_utc"):
+        for field, value in sched.items():
             if m.get(field) is None:
-                m[field] = sched[field]
+                m[field] = value
                 changed = True
 
     if changed:
