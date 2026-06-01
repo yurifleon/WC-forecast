@@ -11,7 +11,7 @@ Add `venue` (host-city string, stored verbatim as the source lists it, e.g. `"Ph
 
 ## 2. Unify `R32_SCHEDULE` → `MATCH_SCHEDULE`
 
-Rename the existing R32-only constant to `MATCH_SCHEDULE`, keyed by all 31 match ids. Each entry has `venue` + `kickoff_utc`; R32 entries additionally keep `home_origin`/`away_origin` (R16+ omit them). Full table (UTC values `zoneinfo`-verified from each venue's IANA zone; R32 kickoffs unchanged from the shipped feature):
+Rename the existing R32-only constant to `MATCH_SCHEDULE`, keyed by all 32 match ids. Each entry has `venue` + `kickoff_utc`; R32 entries additionally keep `home_origin`/`away_origin` (R16+ omit them). Full table (UTC values `zoneinfo`-verified from each venue's IANA zone; R32 kickoffs unchanged from the shipped feature):
 
 ```python
 MATCH_SCHEDULE = {
@@ -70,7 +70,7 @@ MATCH_SCHEDULE = {
                 m[field] = value
                 changed = True
     ```
-  - Idempotent + no-clobber (per-field `is None`): admin-entered teams/scores/kickoffs are never overwritten. On next load, the live `data.json` gains R16+ kickoffs and all 31 venues.
+  - Idempotent + no-clobber (per-field `is None`): admin-entered teams/scores/kickoffs are never overwritten. On next load, the live `data.json` gains R16+ kickoffs and all 32 venues.
 
 ## 4. Display timezone → US Central
 
@@ -95,7 +95,7 @@ So all deadlines render in Central:
 ## 7. Testing (no pytest — `python -c` idiom; `python3` binary)
 
 - `python -m py_compile app.py translations.py`.
-- **Timezone regen:** recompute all 31 `MATCH_SCHEDULE` kickoffs from venue IANA zones + local times; assert equality (guards drift across R32 + R16+).
+- **Timezone regen:** recompute all 32 `MATCH_SCHEDULE` kickoffs from venue IANA zones + local times; assert equality (guards drift across R32 + R16+).
 - **Migration:** load the existing `data.json`; assert every match has a non-null `venue`; all R16+ matches have non-null `kickoff_utc`; R16+ `home_origin`/`away_origin` are `None`; idempotent (second migrate → no write); no-clobber (a set `home_team`/custom `kickoff` survives; only `None` fields fill). Monkeypatch `app._write` in tests to avoid touching the real file where appropriate.
 - **Display:** logged-in `/dashboard` and `/predict/<an r32 id>` show the city; `deadline_tz` of an R16 kickoff renders a Central time + `CT` label (e.g. `r16-1` → `Jul 5 2026, 11:00 AM CT`).
 - **Predictability:** an origin-only match is not `is_predictable`.
