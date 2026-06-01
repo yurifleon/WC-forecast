@@ -178,8 +178,8 @@ MATCH_SCHEDULE = {
     "qf-4":   {"kickoff_utc": "2026-07-11T20:00:00+00:00", "venue": "Miami, USA"},
     "sf-1":   {"kickoff_utc": "2026-07-15T01:00:00+00:00", "venue": "Arlington (Dallas), USA"},
     "sf-2":   {"kickoff_utc": "2026-07-16T00:00:00+00:00", "venue": "Atlanta, USA"},
-    "third-1":{"kickoff_utc": "2026-07-18T19:00:00+00:00", "venue": "Miami, USA"},
-    "final-1":{"kickoff_utc": "2026-07-19T19:00:00+00:00", "venue": "East Rutherford (MetLife Stadium), USA"},
+    "third-1": {"kickoff_utc": "2026-07-18T19:00:00+00:00", "venue": "Miami, USA"},
+    "final-1": {"kickoff_utc": "2026-07-19T19:00:00+00:00", "venue": "East Rutherford (MetLife Stadium), USA"},
 }
 
 
