@@ -20,9 +20,9 @@ services:
       - key: DATA_DIR
         value: /data              # points data.json at the persistent disk
       - key: DISPLAY_TZ
-        value: America/Lima
+        value: America/Chicago
       - key: DISPLAY_TZ_LABEL
-        value: LIM
+        value: CT
       - key: MAX_USERS
         value: "20"
     disk:

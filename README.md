@@ -46,8 +46,8 @@ team names, kickoff times, and results as the tournament unfolds.
 | `DATA_DIR` | project dir | Where `data.json` lives. **Set to a Render persistent disk (e.g. `/data`) before the first signup** or data is wiped on each deploy. |
 | `SECRET_KEY` | dev fallback | Flask session secret. **Set in production.** |
 | `ADMIN_PASSWORD` | value in `data.json` | Admin panel password; set in Render to avoid editing data. |
-| `DISPLAY_TZ` | `America/Lima` | Timezone deadlines are shown in and admin input is interpreted as. |
-| `DISPLAY_TZ_LABEL` | `LIM` | Label shown next to times. |
+| `DISPLAY_TZ` | `America/Chicago` | Timezone deadlines are shown in and admin input is interpreted as. |
+| `DISPLAY_TZ_LABEL` | `CT` | Label shown next to times. |
 | `MAX_USERS` | `20` | Registration cap. |
 | `PORT` | `5000` | HTTP port (Render sets this). |
 

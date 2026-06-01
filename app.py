@@ -39,8 +39,8 @@ DATA_FILE = os.path.join(_data_dir, "data.json")
 
 # Timezone the group reads deadlines in. Stored values are always UTC; this is
 # only for DISPLAY and for interpreting admin datetime-local input.
-DISPLAY_TZ = ZoneInfo(os.environ.get("DISPLAY_TZ", "America/Lima"))
-DISPLAY_TZ_LABEL = os.environ.get("DISPLAY_TZ_LABEL", "LIM")
+DISPLAY_TZ = ZoneInfo(os.environ.get("DISPLAY_TZ", "America/Chicago"))
+DISPLAY_TZ_LABEL = os.environ.get("DISPLAY_TZ_LABEL", "CT")
 
 MAX_USERS = int(os.environ.get("MAX_USERS", "20"))
 SUPPORTED_LANGS = {"en", "es"}
