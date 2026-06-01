@@ -14,7 +14,7 @@
           {% else %}
             <span class="text-muted">{{ slot_label(m, 'home') }} vs {{ slot_label(m, 'away') }}</span>
           {% endif %}
-          <div class="small text-muted">{{ _("Deadline") }}: {{ m.kickoff_utc | deadline_tz }}</div>
+          <div class="small text-muted">{{ _("Deadline") }}: {{ m.kickoff_utc | deadline_tz }}{% if m.venue %} · {{ m.venue }}{% endif %}</div>
         </div>
         <div class="text-end">
           {% if not has_teams(m) %}

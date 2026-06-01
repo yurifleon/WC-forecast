@@ -3,7 +3,7 @@
 <div class="row justify-content-center">
   <div class="col-md-6">
     <div class="card p-4">
-      <span class="accent small">{{ round_label(match.round) }}</span>
+      <span class="accent small">{{ round_label(match.round) }}{% if match.venue %} · {{ match.venue }}{% endif %}</span>
       <h4 class="mb-1">{{ match.home_team }} vs {{ match.away_team }}</h4>
       <div class="small text-muted mb-3">{{ _("Deadline") }}: {{ match.kickoff_utc | deadline_tz }}</div>
 
