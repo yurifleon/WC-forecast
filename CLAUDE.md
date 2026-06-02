@@ -32,10 +32,12 @@ print(compute_points({'home':2,'away':1,'advance':'A'}, m))  # {'score':6,'advan
 ## Architecture
 
 **Data layer:** JSON flat file `data.json` (gitignored). `load_data()` /
-`save_data()`; `migrate_data()` runs on every load (self-healing schema, seeds the
-32-match bracket if empty). `DATA_DIR` env var relocates the file to a Render disk.
-A per-request `lru_cache` (`load_data_cached`) is used only by `before_request`;
-routes call `load_data()` directly.
+`save_data()`; `migrate_data()` runs on every load (self-healing schema; on a fresh
+deploy `_seed_matches()` builds all 32 matches, then `MATCH_SCHEDULE` is backfilled
+field-by-field, fill-if-empty so admin-entered teams/scores/kickoffs are never
+clobbered). `DATA_DIR` env var relocates the file to a Render disk. A per-request
+`lru_cache` (`load_data_cached`) is used only by `before_request`; routes call
+`load_data()` directly.
 
 **Data model:**
 ```jsonc
@@ -43,6 +45,8 @@ routes call `load_data()` directly.
   "users":   { "yuri": { "email", "password_hash", "reset_token", "reset_expires", "preferred_lang" } },
   "admin_password": "...",
   "matches": [{ "id": "r32-1", "round": "r32", "home_team", "away_team",
+                "home_origin", "away_origin", // group-slot codes ("2A", "3rd A/B/C/D/F"); R32 only, null on R16+
+                "venue",                  // host city string, or null
                 "kickoff_utc",            // tz-aware UTC ISO string, or null (TBD)
                 "home_score", "away_score", "advanced_team" }],
   "predictions": { "yuri": { "r32-1": { "home": 2, "away": 1, "advance": "Brazil" } } }
@@ -50,6 +54,23 @@ routes call `load_data()` directly.
 ```
 Match `id` is a **string** everywhere (e.g. `"r32-1"`) — no int/str split like UCL had.
 Predictions are keyed by the same string id.
+
+**Real schedule (`MATCH_SCHEDULE`):** the actual FIFA WC 2026 knockout bracket
+(origins + venues + UTC kickoffs) is hardcoded and seeded/backfilled on load. Source
+schedule docs: `round_of_32_schedule.md`, `round_of_16_and_on_schedule.md`,
+`schedule_bracket.md`, `FIFA_WC_2026_Master_Guide.md`. R32 matches carry group-stage
+`*_origin` slot codes; R16+ leave teams null and rely on bracket feed labels.
+
+**FIFA match numbers (`match_number`):** every knockout game has a FIFA match number
+M73–M104, derived from round + numeric id suffix (`r32-1`→73 … `final-1`→104) via
+`_MATCH_NO_BASE`. Returns None for unknown rounds. Shown on bracket/dashboard/predict.
+
+**Teams (`GROUPS`, `team_options`, `slot_label`):** `GROUPS` holds the 48 nations by
+group letter (A–L); `ALL_TEAMS` is the flat fallback. `team_options(match, side, by_id)`
+narrows the admin team dropdown — for R32 to the origin slot's group(s) (via
+`_origin_groups`), for R16+ to the winner (`advanced_team`) of the feeding match, for
+`third` to the SF losers. `slot_label(match, side)` is the display label with
+precedence: real team → origin slot code → feed-label placeholder (`Winner R32-1`) → `TBD`.
 
 **Single-match model:** every knockout game has ONE score (`home_score`/`away_score`)
 and an `advanced_team` (covers penalty shootouts). There are no "legs". This is the
@@ -108,7 +129,8 @@ don't reintroduce home/away wording in templates.
 
 **Templates:** Jinja2 + Bootstrap 5.3 dark theme, **no custom JS**. Keep logic in
 Python helpers and inject view helpers via the `inject_i18n_helpers` context processor
-(`_`, `round_label`, `is_locked`, `is_predictable`, `has_teams`, `compute_points`).
+(`_`, `round_label`, `is_locked`, `is_predictable`, `has_teams`, `slot_label`,
+`match_number`, `compute_points`).
 
 ## Code style
 
