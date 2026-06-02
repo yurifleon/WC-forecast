@@ -27,7 +27,7 @@
     {% for m in matches %}
     <div class="card mb-2">
       <div class="card-body">
-        <span class="accent small">{{ round_label(m.round) }}{% if match_number(m) is not none %} · M{{ match_number(m) }}{% endif %} — {{ _("single match") }}</span>
+        <span class="accent small">{{ round_label(m.round) }}{% if match_number(m) is not none %} · M{{ match_number(m) }}{% endif %}{% if m.venue %} · {{ m.venue }}{% endif %}</span>
         <form method="post" action="{{ url_for('admin') }}" class="row g-2 mt-1 align-items-end">
           <input type="hidden" name="action" value="save_match">
           <input type="hidden" name="match_id" value="{{ m.id }}">
