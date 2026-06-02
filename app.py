@@ -91,6 +91,24 @@ ROUND_CODE_SHORT = {"r32": "R32", "r16": "R16", "qf": "QF", "sf": "SF"}
 # semifinals (losers and winners respectively).
 _FEEDER_PREV = {"r16": "r32", "qf": "r16", "sf": "qf", "final": "sf", "third": "sf"}
 
+# 48 participating nations by group (source: FIFA_WC_2026_Master_Guide.md). Used to
+# narrow the admin team dropdown to a match's possible teams.
+GROUPS = {
+    "A": ["Mexico", "South Africa", "South Korea", "Czechia"],
+    "B": ["Canada", "Bosnia and Herzegovina", "Qatar", "Switzerland"],
+    "C": ["Brazil", "Morocco", "Costa Rica", "Sweden"],
+    "D": ["United States", "Paraguay", "Australia", "Türkiye"],
+    "E": ["Germany", "Ecuador", "Côte d'Ivoire", "Curaçao"],
+    "F": ["Italy", "Japan", "Tunisia", "Haiti"],
+    "G": ["Belgium", "Egypt", "Iran", "New Zealand"],
+    "H": ["Spain", "Uruguay", "Saudi Arabia", "Cape Verde"],
+    "I": ["France", "Senegal", "Norway", "Iraq"],
+    "J": ["Argentina", "Austria", "Algeria", "Jordan"],
+    "K": ["Portugal", "Colombia", "Uzbekistan", "DR Congo"],
+    "L": ["England", "Croatia", "Ghana", "Panama"],
+}
+ALL_TEAMS = sorted({t for teams in GROUPS.values() for t in teams})  # 48; dropdown fallback
+
 
 def feeders(match):
     """Return (word, top_feeder_id, bottom_feeder_id) for a match's two slots, or
@@ -127,6 +145,58 @@ def feed_label_pair(match):
     word, top, bot = f
     return (f"{translate(word)} {_short_id(top)}",
             f"{translate(word)} {_short_id(bot)}")
+
+
+def _origin_groups(origin):
+    """Group letters an R32 origin slot can draw from. '2A' -> ['A'];
+    '3rd A/B/C/D/F' -> ['A','B','C','D','F']; unknown/empty -> []."""
+    if not origin:
+        return []
+    if origin.startswith("3rd "):
+        return [g for g in origin[4:].split("/") if g in GROUPS]
+    if origin[0] in "12":
+        g = origin[1:]
+        return [g] if g in GROUPS else []
+    return []
+
+
+def team_options(match, side, by_id):
+    """Candidate real teams for one slot of a match, for the admin dropdown.
+    R32: teams from the origin's group(s) (fallback to all 48 if unparseable).
+    R16/QF/SF/Final: the winner (advanced_team) of the feeding match.
+    Third place: the loser of the feeding semifinal. Empty list when undecided.
+    `by_id` maps match id -> match dict. Returns a sorted, de-duplicated list."""
+    origin = match.get(f"{side}_origin")
+    if origin:  # Round of 32
+        teams = sorted({t for g in _origin_groups(origin) for t in GROUPS[g]})
+        return teams or ALL_TEAMS
+    f = feeders(match)
+    if not f:
+        return ALL_TEAMS
+    word, top, bot = f
+    feeder = by_id.get(top if side == "home" else bot)
+    if not feeder:
+        return []
+    if word == "Loser":
+        return [t for t in (feeder.get("home_team"), feeder.get("away_team"))
+                if t and t != feeder.get("advanced_team")]
+    adv = feeder.get("advanced_team")
+    return [adv] if adv else []
+
+
+_MATCH_NO_BASE = {"r32": 72, "r16": 88, "qf": 96, "sf": 100, "third": 102, "final": 103}
+
+
+def match_number(match):
+    """FIFA match number (73–104), derived from round + numeric id suffix.
+    r32-1->73 … r32-16->88, r16-1->89 … final-1->104. None for unknown rounds."""
+    base = _MATCH_NO_BASE.get(match.get("round"))
+    if base is None:
+        return None
+    try:
+        return base + int(str(match["id"]).rsplit("-", 1)[-1])
+    except (ValueError, KeyError):
+        return None
 
 
 def slot_label(match, side):
@@ -516,6 +586,7 @@ def inject_i18n_helpers():
         "is_predictable": is_predictable,
         "has_teams": has_teams,
         "slot_label": slot_label,
+        "match_number": match_number,
         "compute_points": compute_points,
     }
 
