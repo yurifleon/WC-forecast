@@ -154,7 +154,7 @@ def _origin_groups(origin):
         return []
     if origin.startswith("3rd "):
         return [g for g in origin[4:].split("/") if g in GROUPS]
-    if origin[0] in "12":
+    if origin[0] in "12":  # rank 1 or 2 in a single group; "3rd ..." handled above
         g = origin[1:]
         return [g] if g in GROUPS else []
     return []
@@ -172,7 +172,7 @@ def team_options(match, side, by_id):
         return teams or ALL_TEAMS
     f = feeders(match)
     if not f:
-        return ALL_TEAMS
+        return []  # unknown/unsupported round — no valid options
     word, top, bot = f
     feeder = by_id.get(top if side == "home" else bot)
     if not feeder:
