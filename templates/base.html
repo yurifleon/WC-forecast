@@ -17,6 +17,10 @@
     /* Bootstrap's .text-muted (#6c757d) is too dark on our dark-green theme;
        use a lighter muted sage that stays readable on body + card backgrounds. */
     .text-muted { color:#9fb8a8 !important; }
+    /* Simulator winner-pick buttons: theme-light text (not Bootstrap link blue),
+       accent on hover/focus to signal they're clickable. */
+    .team-pick { color:#e9f2ec; text-decoration:none; }
+    .team-pick:hover, .team-pick:focus { color:var(--wc-accent); }
     .table { color:#e9f2ec; }
     .badge-tbd { background:#444; }
     .badge-locked { background:#8a1f1f; }

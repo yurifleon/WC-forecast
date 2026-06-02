@@ -9,7 +9,7 @@
     <input type="hidden" name="match_id" value="{{ m.id }}">
     <input type="hidden" name="team" value="{{ team }}">
     <button type="submit" class="btn btn-sm text-start py-0 px-1 bracket-slot
-      {{ 'fw-bold accent' if m.winner == team else 'btn-link text-decoration-none p-0' }}">
+      {{ 'fw-bold accent' if m.winner == team else 'team-pick' }}">
       {{ team }}{% if m.winner == team %} ✓{% endif %}
     </button>
   </form>
