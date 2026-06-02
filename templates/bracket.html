@@ -3,7 +3,7 @@
 {% macro match_card(m, show_champion=false) %}
 <div class="card">
   <div class="card-body p-2 small">
-    <div class="text-muted" style="font-size:0.7rem">M{{ match_number(m) }}</div>
+    {% if match_number(m) is not none %}<div class="text-muted" style="font-size:0.7rem">M{{ match_number(m) }}</div>{% endif %}
     <div class="bracket-slot{{ ' text-muted fst-italic' if m.home_is_placeholder }}{{ ' fw-bold accent' if m.advanced_team and m.advanced_team == m.home_team }}">
       {{ m.home_display }}{% if m.home_score is not none %}<span class="float-end">{{ m.home_score }}</span>{% endif %}
     </div>

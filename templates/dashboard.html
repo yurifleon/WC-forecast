@@ -8,7 +8,7 @@
     <div class="card mb-2">
       <div class="card-body d-flex justify-content-between align-items-center flex-wrap">
         <div>
-          <span class="accent small">{{ round_label(m.round) }} · M{{ match_number(m) }}</span><br>
+          <span class="accent small">{{ round_label(m.round) }}{% if match_number(m) is not none %} · M{{ match_number(m) }}{% endif %}</span><br>
           {% if has_teams(m) %}
             <strong>{{ m.home_team }}</strong> vs <strong>{{ m.away_team }}</strong>
           {% else %}
