@@ -22,7 +22,7 @@
 <div class="card">
   <div class="card-body p-2 small">
     <div class="accent fw-bold">{% if match_number(m) is not none %}M{{ match_number(m) }}{% endif %}{% if m.venue %}{% if match_number(m) is not none %} · {% endif %}{{ m.venue }}{% endif %}</div>
-    {% if m.kickoff_utc %}<div style="font-size:.72rem">{{ m.kickoff_utc | deadline_tz }}</div>{% endif %}
+    {% if m.kickoff_utc %}<div style="font-size:.72rem;color:#cfe3d6">{{ m.kickoff_utc | deadline_tz }}</div>{% endif %}
     {% if m.round == 'r32' %}
     <form method="post" class="d-flex flex-column gap-1 mb-1">
       <input type="hidden" name="action" value="set_teams">
