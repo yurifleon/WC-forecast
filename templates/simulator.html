@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% macro slot_btn(m, side) %}
+  {% set team = m.sim_home if side == 'home' else m.sim_away %}
+  {% set label = m.home_display if side == 'home' else m.away_display %}
+  {% if team %}
+  <form method="post" class="d-grid">
+    <input type="hidden" name="action" value="pick_winner">
+    <input type="hidden" name="match_id" value="{{ m.id }}">
+    <input type="hidden" name="team" value="{{ team }}">
+    <button type="submit" class="btn btn-sm text-start py-0 px-1 bracket-slot
+      {{ 'fw-bold accent' if m.winner == team else 'btn-link text-decoration-none p-0' }}">
+      {{ team }}{% if m.winner == team %} ✓{% endif %}
+    </button>
+  </form>
+  {% else %}
+  <div class="bracket-slot text-muted fst-italic">{{ label }}</div>
+  {% endif %}
+{% endmacro %}
+
+{% macro sim_card(m, show_champion=false) %}
+<div class="card">
+  <div class="card-body p-2 small">
+    {% if match_number(m) is not none %}<div class="accent fw-bold">M{{ match_number(m) }}</div>{% endif %}
+    {% if m.round == 'r32' %}
+    <form method="post" class="d-flex flex-column gap-1 mb-1">
+      <input type="hidden" name="action" value="set_teams">
+      <input type="hidden" name="match_id" value="{{ m.id }}">
+      <select name="home" class="form-select form-select-sm">
+        <option value="">{{ m.home_origin or _("TBD") }}</option>
+        {% for t in m.home_pool %}<option value="{{ t }}"{{ ' selected' if t == m.sim_home }}>{{ t }}</option>{% endfor %}
+      </select>
+      <select name="away" class="form-select form-select-sm">
+        <option value="">{{ m.away_origin or _("TBD") }}</option>
+        {% for t in m.away_pool %}<option value="{{ t }}"{{ ' selected' if t == m.sim_away }}>{{ t }}</option>{% endfor %}
+      </select>
+      <button class="btn btn-sm btn-outline-light py-0" type="submit">{{ _("Set teams") }}</button>
+    </form>
+    {% endif %}
+    {{ slot_btn(m, 'home') }}
+    {{ slot_btn(m, 'away') }}
+    {% if show_champion and m.winner %}
+    <div class="text-center mt-1">🏆 <span class="accent">{{ _("Champion") }}: {{ m.winner }}</span></div>
+    {% endif %}
+  </div>
+</div>
+{% endmacro %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h3 class="mb-0">{{ _("Bracket Simulator") }}</h3>
+  <form method="post">
+    <input type="hidden" name="action" value="reset">
+    <button class="btn btn-sm btn-outline-danger" type="submit">{{ _("Reset simulator") }}</button>
+  </form>
+</div>
+<p class="text-muted small">{{ _("Pick teams and winners to explore possible match-ups. This is just a sandbox — it is not scored and does not affect your predictions.") }}</p>
+
+<div class="bracket">
+  {% for col in columns %}
+  {% set is_feeder = col.round in ['r32', 'r16', 'qf', 'sf'] %}
+  <div class="round round-{{ col.round }}">
+    <h6 class="accent text-center mb-3">{{ round_label(col.round) }}</h6>
+    {% for m in col.matches %}
+    <div class="bracket-match{% if is_feeder %}{{ ' feeder-top' if loop.index is odd else ' feeder-bottom' }}{% endif %}">
+      {{ sim_card(m, show_champion=(col.round == 'final')) }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+
+{% if third %}
+<div class="third-place mt-4">
+  <h6 class="accent">{{ round_label('third') }}</h6>
+  <div style="max-width:210px">{{ sim_card(third) }}</div>
+</div>
+{% endif %}
+{% endblock %}
