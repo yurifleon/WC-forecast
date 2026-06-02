@@ -195,6 +195,37 @@ def _sim_pool(match, side):
     return teams or ALL_TEAMS
 
 
+def _sim_participants(sim, match, by_id):
+    """Return (home, away) team names for a simulator match; either may be None when
+    undecided. R32: from the user's stored slot. R16+: the winner of each feeder
+    match. Third-place: the LOSER of each feeding semifinal (the participant that is
+    not that SF's winner). Pure-ish: reads sim + by_id, no app context needed."""
+    rnd = match.get("round")
+    if rnd == "r32":
+        slot = sim.get("r32", {}).get(match["id"], {})
+        return (slot.get("home"), slot.get("away"))
+    f = feeders(match)
+    if not f:
+        return (None, None)
+    word, top, bot = f
+    winners = sim.get("winners", {})
+
+    def resolve(feeder_id):
+        feeder = by_id.get(feeder_id)
+        if not feeder:
+            return None
+        win = winners.get(feeder_id)
+        if not win:
+            return None
+        if word == "Loser":
+            ph, pa = _sim_participants(sim, feeder, by_id)
+            others = [t for t in (ph, pa) if t and t != win]
+            return others[0] if others else None
+        return win
+
+    return (resolve(top), resolve(bot))
+
+
 _MATCH_NO_BASE = {"r32": 72, "r16": 88, "qf": 96, "sf": 100, "third": 102, "final": 103}
 
 
