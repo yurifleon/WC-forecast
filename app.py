@@ -838,6 +838,59 @@ def bracket():
     return render_template("bracket.html", columns=columns, third=third)
 
 
+@app.route("/simulator", methods=["GET", "POST"])
+def simulator():
+    if not login_required():
+        return redirect(url_for("home"))
+    data = load_data()
+    username = session["username"]
+    sims = data.setdefault("simulations", {})
+    sim = sims.setdefault(username, {"r32": {}, "winners": {}})
+    sim.setdefault("r32", {})
+    sim.setdefault("winners", {})
+    by_id = {m["id"]: m for m in data["matches"]}
+
+    if request.method == "POST":
+        action = request.form.get("action")
+        if action == "reset":
+            sims[username] = {"r32": {}, "winners": {}}
+            flash(translate("Simulator reset."), "info")
+        elif action == "set_teams":
+            match = by_id.get(request.form.get("match_id"))
+            if match and match.get("round") == "r32":
+                home = request.form.get("home") or None
+                away = request.form.get("away") or None
+                if home and home not in _sim_pool(match, "home"):
+                    home = None
+                if away and away not in _sim_pool(match, "away"):
+                    away = None
+                sim["r32"][match["id"]] = {"home": home, "away": away}
+                _prune_sim(sim)
+            else:
+                flash(translate("Invalid match."), "danger")
+        elif action == "pick_winner":
+            match = by_id.get(request.form.get("match_id"))
+            team = request.form.get("team")
+            if match:
+                home, away = _sim_participants(sim, match, by_id)
+                if team and team in (home, away):
+                    sim["winners"][match["id"]] = team
+                    _prune_sim(sim)
+                else:
+                    flash(translate("Pick a valid team for that match."), "warning")
+        save_data(data)
+        return redirect(url_for("simulator"))
+
+    tree_order = ["r32", "r16", "qf", "sf", "final"]
+    columns = []
+    for rnd in tree_order:
+        rnd_matches = sorted_matches([m for m in data["matches"] if m.get("round") == rnd])
+        columns.append({"round": rnd, "matches": [_sim_view(sim, m, by_id) for m in rnd_matches]})
+    third_match = next((m for m in data["matches"] if m.get("round") == "third"), None)
+    third = _sim_view(sim, third_match, by_id) if third_match else None
+    return render_template("simulator.html", columns=columns, third=third)
+
+
 @app.route("/set-language/<lang>")
 def set_language(lang):
     if lang in SUPPORTED_LANGS:
