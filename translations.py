@@ -109,4 +109,14 @@ SPANISH_TRANSLATIONS = {
     "Remove": "Eliminar",
     "User removed.": "Usuario eliminado.",
     "Password for {name} set to: {pw}": "Contraseña de {name} establecida en: {pw}",
+
+    # Simulator
+    "Simulator": "Simulador",
+    "Bracket Simulator": "Simulador de Cuadro",
+    "Reset simulator": "Reiniciar simulador",
+    "Simulator reset.": "Simulador reiniciado.",
+    "Set teams": "Definir equipos",
+    "Pick a valid team for that match.": "Elige un equipo válido para ese partido.",
+    "Invalid match.": "Partido inválido.",
+    "Pick teams and winners to explore possible match-ups. This is just a sandbox — it is not scored and does not affect your predictions.": "Elige equipos y ganadores para explorar posibles enfrentamientos. Es solo una zona de práctica: no cuenta para los puntos ni afecta tus pronósticos.",
 }
