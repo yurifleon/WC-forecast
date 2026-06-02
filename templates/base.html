@@ -10,10 +10,13 @@
     body { background:var(--wc-bg); color:#e9f2ec; }
     .navbar { background:var(--wc-primary) !important; }
     .navbar-brand, .nav-link { color:#fff !important; }
-    .card { background:#10301c; border:1px solid #1c4a2c; }
+    .card { background:#10301c; border:1px solid #1c4a2c; color:#e9f2ec; }
     .btn-wc { background:var(--wc-primary); color:#fff; border:none; }
     .btn-wc:hover { background:#15622f; color:#fff; }
     .accent { color:var(--wc-accent); }
+    /* Bootstrap's .text-muted (#6c757d) is too dark on our dark-green theme;
+       use a lighter muted sage that stays readable on body + card backgrounds. */
+    .text-muted { color:#9fb8a8 !important; }
     .table { color:#e9f2ec; }
     .badge-tbd { background:#444; }
     .badge-locked { background:#8a1f1f; }
