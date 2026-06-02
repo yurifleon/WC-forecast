@@ -245,6 +245,33 @@ def _prune_sim(sim):
     return sim
 
 
+def _sim_view(sim, match, by_id):
+    """Display fields for one simulator match: resolved participants, the label to
+    show in each slot (team → R32 origin code → feed placeholder → 'TBD'), the
+    current winner, and the R32 selectable pools (empty for R16+)."""
+    home, away = _sim_participants(sim, match, by_id)
+    top_lbl, bot_lbl = feed_label_pair(match)
+    is_r32 = match.get("round") == "r32"
+
+    def label(team, origin, feed):
+        if team:
+            return team
+        if is_r32 and origin:
+            return origin
+        return feed or translate("TBD")
+
+    return {
+        **match,
+        "sim_home": home,
+        "sim_away": away,
+        "home_display": label(home, match.get("home_origin"), top_lbl),
+        "away_display": label(away, match.get("away_origin"), bot_lbl),
+        "winner": sim.get("winners", {}).get(match["id"]),
+        "home_pool": _sim_pool(match, "home"),
+        "away_pool": _sim_pool(match, "away"),
+    }
+
+
 _MATCH_NO_BASE = {"r32": 72, "r16": 88, "qf": 96, "sf": 100, "third": 102, "final": 103}
 
 
