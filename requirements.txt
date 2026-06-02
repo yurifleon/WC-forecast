@@ -1,2 +1,3 @@
 flask
 gunicorn
+tzdata   # IANA zone DB for zoneinfo; required on slim/newer-Python images lacking a system tz database

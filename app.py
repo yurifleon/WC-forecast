@@ -18,7 +18,7 @@ import os
 import secrets
 from datetime import datetime, timezone
 from functools import lru_cache
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from flask import (
     Flask, flash, g, redirect, render_template, request, session, url_for,
@@ -39,7 +39,20 @@ DATA_FILE = os.path.join(_data_dir, "data.json")
 
 # Timezone the group reads deadlines in. Stored values are always UTC; this is
 # only for DISPLAY and for interpreting admin datetime-local input.
-DISPLAY_TZ = ZoneInfo(os.environ.get("DISPLAY_TZ", "America/Chicago"))
+# Needs the `tzdata` package on images without a system zone database (see
+# requirements.txt). An invalid DISPLAY_TZ (e.g. a typo like "Central" instead of
+# "America/Chicago") falls back to US Central rather than crashing boot.
+_DEFAULT_TZ = "America/Chicago"
+
+
+def _resolve_display_tz(name):
+    try:
+        return ZoneInfo(name)
+    except (ZoneInfoNotFoundError, ValueError):
+        return ZoneInfo(_DEFAULT_TZ)
+
+
+DISPLAY_TZ = _resolve_display_tz(os.environ.get("DISPLAY_TZ", _DEFAULT_TZ))
 DISPLAY_TZ_LABEL = os.environ.get("DISPLAY_TZ_LABEL", "CT")
 
 MAX_USERS = int(os.environ.get("MAX_USERS", "20"))
