@@ -847,7 +847,12 @@ def admin():
         save_data(data)
         return redirect(url_for("admin"))
 
-    matches = sorted_matches(data["matches"])
+    by_id = {m["id"]: m for m in data["matches"]}
+    matches = [
+        {**m, "home_options": team_options(m, "home", by_id),
+              "away_options": team_options(m, "away", by_id)}
+        for m in sorted_matches(data["matches"])
+    ]
     return render_template(
         "admin.html",
         is_admin=session.get("is_admin", False),

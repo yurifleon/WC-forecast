@@ -27,7 +27,7 @@
     {% for m in matches %}
     <div class="card mb-2">
       <div class="card-body">
-        <span class="accent small">{{ round_label(m.round) }} — {{ _("single match") }}</span>
+        <span class="accent small">{{ round_label(m.round) }} · M{{ match_number(m) }} — {{ _("single match") }}</span>
         <form method="post" action="{{ url_for('admin') }}" class="row g-2 mt-1 align-items-end">
           <input type="hidden" name="action" value="save_match">
           <input type="hidden" name="match_id" value="{{ m.id }}">
@@ -35,9 +35,25 @@
           <div class="col-md-9">
             <label class="small text-muted">{{ _("Teams") }}</label>
             <div class="d-flex align-items-center gap-2">
-              <input class="form-control form-control-sm" name="home_team" placeholder="" value="{{ m.home_team or '' }}">
+              <select class="form-select form-select-sm" name="home_team">
+                <option value="">—</option>
+                {% for t in m.home_options %}
+                <option value="{{ t }}" {{ 'selected' if t == m.home_team }}>{{ t }}</option>
+                {% endfor %}
+                {% if m.home_team and m.home_team not in m.home_options %}
+                <option value="{{ m.home_team }}" selected>{{ m.home_team }}</option>
+                {% endif %}
+              </select>
               <span class="fw-bold">{{ _("vs") }}</span>
-              <input class="form-control form-control-sm" name="away_team" placeholder="" value="{{ m.away_team or '' }}">
+              <select class="form-select form-select-sm" name="away_team">
+                <option value="">—</option>
+                {% for t in m.away_options %}
+                <option value="{{ t }}" {{ 'selected' if t == m.away_team }}>{{ t }}</option>
+                {% endfor %}
+                {% if m.away_team and m.away_team not in m.away_options %}
+                <option value="{{ m.away_team }}" selected>{{ m.away_team }}</option>
+                {% endif %}
+              </select>
             </div>
           </div>
           <div class="col-md-3">
