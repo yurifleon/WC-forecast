@@ -184,6 +184,17 @@ def team_options(match, side, by_id):
     return [adv] if adv else []
 
 
+def _sim_pool(match, side):
+    """Candidate teams for one Round-of-32 slot in the simulator: every nation in
+    the slot's origin group(s), sorted and de-duplicated. Falls back to all 48
+    teams if the origin is unparseable. R16+ slots have no pool (return [])."""
+    if match.get("round") != "r32":
+        return []
+    origin = match.get(f"{side}_origin")
+    teams = sorted({t for g in _origin_groups(origin) for t in GROUPS[g]})
+    return teams or ALL_TEAMS
+
+
 _MATCH_NO_BASE = {"r32": 72, "r16": 88, "qf": 96, "sf": 100, "third": 102, "final": 103}
 
 
@@ -304,6 +315,7 @@ def migrate_data(data):
     changed = False
     data.setdefault("users", {})
     data.setdefault("predictions", {})
+    data.setdefault("simulations", {})
     data.setdefault("admin_password", DEFAULT_DATA["admin_password"])
 
     # Old format: users stored as a flat list of names.
