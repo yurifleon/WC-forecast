@@ -226,6 +226,25 @@ def _sim_participants(sim, match, by_id):
     return (resolve(top), resolve(bot))
 
 
+def _prune_sim(sim):
+    """Drop any stored winner that is no longer one of its match's current
+    participants, walking rounds in dependency order (r32 → final, then third) so
+    invalidations cascade downstream. Mutates sim in place; returns it."""
+    by_id = {m["id"]: m for m in _seed_matches()}  # structural map (round + feeders)
+    winners = sim.setdefault("winners", {})
+    for rnd in ("r32", "r16", "qf", "sf", "final", "third"):
+        for mid, match in by_id.items():
+            if match.get("round") != rnd:
+                continue
+            win = winners.get(mid)
+            if win is None:
+                continue
+            home, away = _sim_participants(sim, match, by_id)
+            if win not in (home, away):
+                del winners[mid]
+    return sim
+
+
 _MATCH_NO_BASE = {"r32": 72, "r16": 88, "qf": 96, "sf": 100, "third": 102, "final": 103}
 
 
