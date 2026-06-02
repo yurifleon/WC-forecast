@@ -184,6 +184,94 @@ def team_options(match, side, by_id):
     return [adv] if adv else []
 
 
+def _sim_pool(match, side):
+    """Candidate teams for one Round-of-32 slot in the simulator: every nation in
+    the slot's origin group(s), sorted and de-duplicated. Falls back to all 48
+    teams if the origin is unparseable. R16+ slots have no pool (return [])."""
+    if match.get("round") != "r32":
+        return []
+    origin = match.get(f"{side}_origin")
+    teams = sorted({t for g in _origin_groups(origin) for t in GROUPS[g]})
+    return teams or ALL_TEAMS
+
+
+def _sim_participants(sim, match, by_id):
+    """Return (home, away) team names for a simulator match; either may be None when
+    undecided. R32: from the user's stored slot. R16+: the winner of each feeder
+    match. Third-place: the LOSER of each feeding semifinal (the participant that is
+    not that SF's winner). Pure-ish: reads sim + by_id, no app context needed."""
+    rnd = match.get("round")
+    if rnd == "r32":
+        slot = sim.get("r32", {}).get(match["id"], {})
+        return (slot.get("home"), slot.get("away"))
+    f = feeders(match)
+    if not f:
+        return (None, None)
+    word, top, bot = f
+    winners = sim.get("winners", {})
+
+    def resolve(feeder_id):
+        feeder = by_id.get(feeder_id)
+        if not feeder:
+            return None
+        win = winners.get(feeder_id)
+        if not win:
+            return None
+        if word == "Loser":
+            ph, pa = _sim_participants(sim, feeder, by_id)
+            others = [t for t in (ph, pa) if t and t != win]
+            return others[0] if others else None
+        return win
+
+    return (resolve(top), resolve(bot))
+
+
+def _prune_sim(sim):
+    """Drop any stored winner that is no longer one of its match's current
+    participants, walking rounds in dependency order (r32 → final, then third) so
+    invalidations cascade downstream. Mutates sim in place; returns it."""
+    by_id = {m["id"]: m for m in _seed_matches()}  # structural map (round + feeders)
+    winners = sim.setdefault("winners", {})
+    for rnd in ("r32", "r16", "qf", "sf", "final", "third"):
+        for mid, match in by_id.items():
+            if match.get("round") != rnd:
+                continue
+            win = winners.get(mid)
+            if win is None:
+                continue
+            home, away = _sim_participants(sim, match, by_id)
+            if win not in (home, away):
+                del winners[mid]
+    return sim
+
+
+def _sim_view(sim, match, by_id):
+    """Display fields for one simulator match: resolved participants, the label to
+    show in each slot (team → R32 origin code → feed placeholder → 'TBD'), the
+    current winner, and the R32 selectable pools (empty for R16+)."""
+    home, away = _sim_participants(sim, match, by_id)
+    top_lbl, bot_lbl = feed_label_pair(match)
+    is_r32 = match.get("round") == "r32"
+
+    def label(team, origin, feed):
+        if team:
+            return team
+        if is_r32 and origin:
+            return origin
+        return feed or translate("TBD")
+
+    return {
+        **match,
+        "sim_home": home,
+        "sim_away": away,
+        "home_display": label(home, match.get("home_origin"), top_lbl),
+        "away_display": label(away, match.get("away_origin"), bot_lbl),
+        "winner": sim.get("winners", {}).get(match["id"]),
+        "home_pool": _sim_pool(match, "home"),
+        "away_pool": _sim_pool(match, "away"),
+    }
+
+
 _MATCH_NO_BASE = {"r32": 72, "r16": 88, "qf": 96, "sf": 100, "third": 102, "final": 103}
 
 
@@ -304,6 +392,7 @@ def migrate_data(data):
     changed = False
     data.setdefault("users", {})
     data.setdefault("predictions", {})
+    data.setdefault("simulations", {})
     data.setdefault("admin_password", DEFAULT_DATA["admin_password"])
 
     # Old format: users stored as a flat list of names.
@@ -747,6 +836,59 @@ def bracket():
     third_match = next((m for m in data["matches"] if m.get("round") == "third"), None)
     third = _bracket_view(third_match) if third_match else None
     return render_template("bracket.html", columns=columns, third=third)
+
+
+@app.route("/simulator", methods=["GET", "POST"])
+def simulator():
+    if not login_required():
+        return redirect(url_for("home"))
+    data = load_data()
+    username = session["username"]
+    sims = data.setdefault("simulations", {})
+    sim = sims.setdefault(username, {"r32": {}, "winners": {}})
+    sim.setdefault("r32", {})
+    sim.setdefault("winners", {})
+    by_id = {m["id"]: m for m in data["matches"]}
+
+    if request.method == "POST":
+        action = request.form.get("action")
+        if action == "reset":
+            sims[username] = {"r32": {}, "winners": {}}
+            flash(translate("Simulator reset."), "info")
+        elif action == "set_teams":
+            match = by_id.get(request.form.get("match_id"))
+            if match and match.get("round") == "r32":
+                home = request.form.get("home") or None
+                away = request.form.get("away") or None
+                if home and home not in _sim_pool(match, "home"):
+                    home = None
+                if away and away not in _sim_pool(match, "away"):
+                    away = None
+                sim["r32"][match["id"]] = {"home": home, "away": away}
+                _prune_sim(sim)
+            else:
+                flash(translate("Invalid match."), "danger")
+        elif action == "pick_winner":
+            match = by_id.get(request.form.get("match_id"))
+            team = request.form.get("team")
+            if match:
+                home, away = _sim_participants(sim, match, by_id)
+                if team and team in (home, away):
+                    sim["winners"][match["id"]] = team
+                    _prune_sim(sim)
+                else:
+                    flash(translate("Pick a valid team for that match."), "warning")
+        save_data(data)
+        return redirect(url_for("simulator"))
+
+    tree_order = ["r32", "r16", "qf", "sf", "final"]
+    columns = []
+    for rnd in tree_order:
+        rnd_matches = sorted_matches([m for m in data["matches"] if m.get("round") == rnd])
+        columns.append({"round": rnd, "matches": [_sim_view(sim, m, by_id) for m in rnd_matches]})
+    third_match = next((m for m in data["matches"] if m.get("round") == "third"), None)
+    third = _sim_view(sim, third_match, by_id) if third_match else None
+    return render_template("simulator.html", columns=columns, third=third)
 
 
 @app.route("/set-language/<lang>")

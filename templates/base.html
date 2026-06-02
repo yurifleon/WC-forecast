@@ -61,6 +61,7 @@
           <li class="nav-item"><a class="nav-link" href="{{ url_for('leaderboard') }}">{{ _("Leaderboard") }}</a></li>
           <li class="nav-item"><a class="nav-link" href="{{ url_for('bracket') }}">{{ _("Bracket") }}</a></li>
           {% if session.get('username') %}
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('simulator') }}">{{ _("Simulator") }}</a></li>
           <li class="nav-item"><a class="nav-link" href="{{ url_for('admin') }}">{{ _("Admin") }}</a></li>
           {% endif %}
         </ul>
