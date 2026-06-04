@@ -128,11 +128,16 @@ winner tree). Connectors are **pure CSS** — `:is()` elbow pseudo-elements in
 separate from `predictions`/scoring** — it earns no points and lives under its own
 `data["simulations"][username]` key (`{"r32": {match_id: {home, away}}, "winners":
 {match_id: team}}`). The user fills R32 slots from each slot's group pool
-(`_sim_pool` → origin group(s), all 48 as fallback) and then picks a winner per match;
-downstream participants are **derived, not stored** — `_sim_participants()` walks
-`feeders()` (winner of each feeder; third-place = the SF *loser*). `_prune_sim()` runs
-after every mutation, cascading r32→final→third to drop winners no longer valid for
-their (possibly changed) participants. `_sim_view()` adds `sim_home/sim_away`,
+(`_sim_pool(match, side, sim)` → origin group(s), all 48 as fallback) and then picks a
+winner per match; downstream participants are **derived, not stored** —
+`_sim_participants()` walks `feeders()` (winner of each feeder; third-place = the SF
+*loser*). **Global team uniqueness is enforced:** when `sim` is passed, `_sim_pool`
+drops nations already chosen in other r32 slots (`_sim_used_teams`), so a team can never
+be fielded twice and thus never face itself downstream. `_prune_sim()` runs after every
+mutation (and self-heals legacy sims on view): it first clears r32 picks no longer in
+their pool (e.g. a team that didn't qualify) and de-dups nations across slots, then
+cascades r32→final→third to drop winners no longer valid for their (possibly changed)
+participants. `_sim_view()` adds `sim_home/sim_away`,
 `*_display` (team → R32 origin code → feed placeholder → `TBD`), `winner`, and the R32
 `*_pool` lists. POST actions: `set_teams`, `pick_winner`, `reset`. Same winner-flow
 tree layout as `/bracket` (third rendered separately).

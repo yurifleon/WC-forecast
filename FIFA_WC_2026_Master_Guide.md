@@ -28,8 +28,8 @@
 
 * Brazil
 * Morocco
-* Costa Rica
-* Sweden
+* Haiti
+* Scotland
 
 # Group D
 
@@ -47,10 +47,10 @@
 
 # Group F
 
-* Italy
+* Netherlands
 * Japan
+* Sweden
 * Tunisia
-* Haiti
 
 # Group G
 
@@ -110,7 +110,6 @@
 | Canada                 | B     |
 | Cape Verde             | H     |
 | Colombia               | K     |
-| Costa Rica             | C     |
 | Croatia                | L     |
 | Curaçao                | E     |
 | Côte d'Ivoire          | E     |
@@ -122,14 +121,14 @@
 | France                 | I     |
 | Germany                | E     |
 | Ghana                  | L     |
-| Haiti                  | F     |
+| Haiti                  | C     |
 | Iran                   | G     |
 | Iraq                   | I     |
-| Italy                  | F     |
 | Japan                  | F     |
 | Jordan                 | J     |
 | Mexico                 | A     |
 | Morocco                | C     |
+| Netherlands            | F     |
 | New Zealand            | G     |
 | Norway                 | I     |
 | Panama                 | L     |
@@ -137,11 +136,12 @@
 | Portugal               | K     |
 | Qatar                  | B     |
 | Saudi Arabia           | H     |
+| Scotland               | C     |
 | Senegal                | I     |
 | South Africa           | A     |
 | South Korea            | A     |
 | Spain                  | H     |
-| Sweden                 | C     |
+| Sweden                 | F     |
 | Switzerland            | B     |
 | Tunisia                | F     |
 | Türkiye                | D     |

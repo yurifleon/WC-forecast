@@ -96,10 +96,10 @@ _FEEDER_PREV = {"r16": "r32", "qf": "r16", "sf": "qf", "final": "sf", "third": "
 GROUPS = {
     "A": ["Mexico", "South Africa", "South Korea", "Czechia"],
     "B": ["Canada", "Bosnia and Herzegovina", "Qatar", "Switzerland"],
-    "C": ["Brazil", "Morocco", "Costa Rica", "Sweden"],
+    "C": ["Brazil", "Morocco", "Haiti", "Scotland"],
     "D": ["United States", "Paraguay", "Australia", "Türkiye"],
     "E": ["Germany", "Ecuador", "Côte d'Ivoire", "Curaçao"],
-    "F": ["Italy", "Japan", "Tunisia", "Haiti"],
+    "F": ["Netherlands", "Japan", "Sweden", "Tunisia"],
     "G": ["Belgium", "Egypt", "Iran", "New Zealand"],
     "H": ["Spain", "Uruguay", "Saudi Arabia", "Cape Verde"],
     "I": ["France", "Senegal", "Norway", "Iraq"],
@@ -184,15 +184,35 @@ def team_options(match, side, by_id):
     return [adv] if adv else []
 
 
-def _sim_pool(match, side):
+def _sim_used_teams(sim, exclude=None):
+    """Nations already assigned to any Round-of-32 slot in the sim. `exclude` is an
+    optional (match_id, side) pair whose own pick is omitted — pass the slot being
+    edited/rendered so its current team stays selectable in its own dropdown."""
+    used = set()
+    for mid, slot in sim.get("r32", {}).items():
+        for s in ("home", "away"):
+            if exclude and (mid, s) == exclude:
+                continue
+            team = slot.get(s)
+            if team:
+                used.add(team)
+    return used
+
+
+def _sim_pool(match, side, sim=None):
     """Candidate teams for one Round-of-32 slot in the simulator: every nation in
     the slot's origin group(s), sorted and de-duplicated. Falls back to all 48
-    teams if the origin is unparseable. R16+ slots have no pool (return [])."""
+    teams if the origin is unparseable. R16+ slots have no pool (return []).
+    When `sim` is given, nations already picked in OTHER r32 slots are dropped, so
+    a team can never be fielded in two slots (and thus never face itself)."""
     if match.get("round") != "r32":
         return []
     origin = match.get(f"{side}_origin")
-    teams = sorted({t for g in _origin_groups(origin) for t in GROUPS[g]})
-    return teams or ALL_TEAMS
+    teams = sorted({t for g in _origin_groups(origin) for t in GROUPS[g]}) or list(ALL_TEAMS)
+    if sim is not None:
+        used = _sim_used_teams(sim, exclude=(match["id"], side))
+        teams = [t for t in teams if t not in used]
+    return teams
 
 
 def _sim_participants(sim, match, by_id):
@@ -227,10 +247,25 @@ def _sim_participants(sim, match, by_id):
 
 
 def _prune_sim(sim):
-    """Drop any stored winner that is no longer one of its match's current
+    """Heal a sim in place, then return it. First the Round-of-32 picks: drop any
+    team no longer in its slot's pool (e.g. a nation that didn't qualify) and de-dup
+    so each nation occupies at most one slot (first slot in r32-1…r32-16 order wins).
+    Then drop any stored winner that is no longer one of its match's current
     participants, walking rounds in dependency order (r32 → final, then third) so
-    invalidations cascade downstream. Mutates sim in place; returns it."""
+    invalidations cascade downstream."""
     by_id = {m["id"]: m for m in _seed_matches()}  # structural map (round + feeders)
+    r32 = sim.setdefault("r32", {})
+    seen = set()
+    for mid in sorted(r32, key=lambda k: int(k.split("-")[-1])):
+        match, slot = by_id.get(mid), r32[mid]
+        for side in ("home", "away"):
+            team = slot.get(side)
+            if not team:
+                continue
+            if not match or team not in _sim_pool(match, side) or team in seen:
+                slot[side] = None
+            else:
+                seen.add(team)
     winners = sim.setdefault("winners", {})
     for rnd in ("r32", "r16", "qf", "sf", "final", "third"):
         for mid, match in by_id.items():
@@ -267,8 +302,8 @@ def _sim_view(sim, match, by_id):
         "home_display": label(home, match.get("home_origin"), top_lbl),
         "away_display": label(away, match.get("away_origin"), bot_lbl),
         "winner": sim.get("winners", {}).get(match["id"]),
-        "home_pool": _sim_pool(match, "home"),
-        "away_pool": _sim_pool(match, "away"),
+        "home_pool": _sim_pool(match, "home", sim),
+        "away_pool": _sim_pool(match, "away", sim),
     }
 
 
@@ -860,11 +895,17 @@ def simulator():
             if match and match.get("round") == "r32":
                 home = request.form.get("home") or None
                 away = request.form.get("away") or None
-                if home and home not in _sim_pool(match, "home"):
+                # Clear this slot first so old picks don't shadow the new ones, then
+                # validate each side against the sim-aware pool (which excludes teams
+                # used elsewhere). Storing home before validating away makes the away
+                # pool exclude it too — so a nation can't be fielded against itself.
+                sim["r32"].pop(match["id"], None)
+                if home and home not in _sim_pool(match, "home", sim):
                     home = None
-                if away and away not in _sim_pool(match, "away"):
+                sim["r32"][match["id"]] = {"home": home, "away": None}
+                if away and away not in _sim_pool(match, "away", sim):
                     away = None
-                sim["r32"][match["id"]] = {"home": home, "away": away}
+                sim["r32"][match["id"]]["away"] = away
                 _prune_sim(sim)
             else:
                 flash(translate("Invalid match."), "danger")
@@ -880,6 +921,13 @@ def simulator():
                     flash(translate("Pick a valid team for that match."), "warning")
         save_data(data)
         return redirect(url_for("simulator"))
+
+    # Self-heal legacy sims on view: drop picks now invalid (e.g. a team that didn't
+    # qualify) or duplicated across slots. Persist only if something actually changed.
+    before = json.dumps(sim, sort_keys=True)
+    _prune_sim(sim)
+    if json.dumps(sim, sort_keys=True) != before:
+        save_data(data)
 
     tree_order = ["r32", "r16", "qf", "sf", "final"]
     columns = []
