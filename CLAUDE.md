@@ -49,7 +49,9 @@ clobbered). `DATA_DIR` env var relocates the file to a Render disk. A per-reques
                 "venue",                  // host city string, or null
                 "kickoff_utc",            // tz-aware UTC ISO string, or null (TBD)
                 "home_score", "away_score", "advanced_team" }],
-  "predictions": { "yuri": { "r32-1": { "home": 2, "away": 1, "advance": "Brazil" } } }
+  "predictions": { "yuri": { "r32-1": { "home": 2, "away": 1, "advance": "Brazil" } } },
+  "simulations": { "yuri": { "r32": { "r32-1": { "home": "Brazil", "away": "Mexico" } },
+                             "winners": { "r32-1": "Brazil" } } }
 }
 ```
 Match `id` is a **string** everywhere (e.g. `"r32-1"`) — no int/str split like UCL had.
@@ -100,7 +102,7 @@ Lang resolution: user `preferred_lang` → `session["lang"]` → `Accept-Languag
 `ADMIN_PASSWORD` env overrides stored value). No email reset yet; admin can reset.
 
 **Routes:** `/` (login), `/register`, `/logout`, `/dashboard`, `/predict/<id>`,
-`/leaderboard`, `/bracket`, `/admin`, `/set-language/<lang>`.
+`/leaderboard`, `/bracket`, `/simulator`, `/admin`, `/set-language/<lang>`.
 
 **Round sorting:** `ROUND_ORDER = {r32:0 … final:5}` sorts matches **chronologically**
 (Round of 32 first → Final last); unknown rounds last (99). `sorted_matches()` breaks
@@ -121,6 +123,19 @@ winner tree). Connectors are **pure CSS** — `:is()` elbow pseudo-elements in
 `base.html`; alignment relies on equal-flex match cells + the flex-default
 `align-items:stretch` (load-bearing). Design + plan: `docs/superpowers/specs/` and
 `docs/superpowers/plans/`.
+
+**Simulator (`/simulator`):** a private per-user "what-if" bracket, **completely
+separate from `predictions`/scoring** — it earns no points and lives under its own
+`data["simulations"][username]` key (`{"r32": {match_id: {home, away}}, "winners":
+{match_id: team}}`). The user fills R32 slots from each slot's group pool
+(`_sim_pool` → origin group(s), all 48 as fallback) and then picks a winner per match;
+downstream participants are **derived, not stored** — `_sim_participants()` walks
+`feeders()` (winner of each feeder; third-place = the SF *loser*). `_prune_sim()` runs
+after every mutation, cascading r32→final→third to drop winners no longer valid for
+their (possibly changed) participants. `_sim_view()` adds `sim_home/sim_away`,
+`*_display` (team → R32 origin code → feed placeholder → `TBD`), `winner`, and the R32
+`*_pool` lists. POST actions: `set_teams`, `pick_winner`, `reset`. Same winner-flow
+tree layout as `/bracket` (third rendered separately).
 
 **Neutral-venue framing:** WC knockouts are at neutral sites, so the UI shows no
 home/away (local/visitor) labels (commit `15adefb`). The fields are still named
