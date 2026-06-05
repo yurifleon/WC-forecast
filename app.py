@@ -1144,6 +1144,9 @@ def admin():
             uname = request.form.get("username", "").strip().lower()
             data["users"].pop(uname, None)
             data["predictions"].pop(uname, None)   # clean orphaned predictions
+            data["simulations"].pop(uname, None)   # clean orphaned simulation
+            data["shared_sims"] = {t: s for t, s in data.get("shared_sims", {}).items()
+                                   if s.get("owner") != uname}  # drop their shared links
             flash(translate("User removed."), "success")
 
         save_data(data)
