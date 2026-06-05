@@ -110,7 +110,8 @@ Lang resolution: user `preferred_lang` → `session["lang"]` → `Accept-Languag
 `ADMIN_PASSWORD` env overrides stored value). No email reset yet; admin can reset.
 
 **Routes:** `/` (login), `/register`, `/logout`, `/dashboard`, `/predict/<id>`,
-`/leaderboard`, `/bracket`, `/simulator`, `/admin`, `/set-language/<lang>`.
+`/leaderboard`, `/bracket`, `/simulator`, `/s/<token>` (public, read-only shared sim),
+`/admin`, `/set-language/<lang>`.
 
 **Round sorting:** `ROUND_ORDER = {r32:0 … final:5}` sorts matches **chronologically**
 (Round of 32 first → Final last); unknown rounds last (99). `sorted_matches()` breaks
