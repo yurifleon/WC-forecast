@@ -282,6 +282,67 @@ def _prune_sim(sim):
     return sim
 
 
+def _share_days_left(expires_utc, now):
+    """Whole days until a snapshot expires, rounded UP (6d2h -> 7). Returns 0 when
+    already expired or the timestamp is unparseable (fail-closed, so callers treat
+    0 as 'expired')."""
+    try:
+        exp = datetime.fromisoformat(expires_utc)
+    except (TypeError, ValueError):
+        return 0
+    if exp.tzinfo is None:
+        exp = exp.replace(tzinfo=timezone.utc)
+    secs = (exp - now).total_seconds()
+    if secs <= 0:
+        return 0
+    return int((secs + 86399) // 86400)  # ceil to whole days
+
+
+def _purge_expired_shares(data, now):
+    """Delete every shared snapshot whose TTL has elapsed. Returns True if anything
+    was removed (so the caller can decide whether to save_data)."""
+    shares = data.setdefault("shared_sims", {})
+    dead = [t for t, s in shares.items() if _share_days_left(s.get("expires_utc"), now) == 0]
+    for t in dead:
+        del shares[t]
+    return bool(dead)
+
+
+def _create_share(data, username, sim, now):
+    """Freeze `sim` into a new token-addressed snapshot owned by `username`, valid for
+    SHARE_TTL_DAYS. The sim is deep-copied so later edits to the live sim never leak
+    into the snapshot. Returns the new token."""
+    shares = data.setdefault("shared_sims", {})
+    token = secrets.token_urlsafe(8)
+    while token in shares:
+        token = secrets.token_urlsafe(8)
+    shares[token] = {
+        "owner": username,
+        "created_utc": now.isoformat(),
+        "expires_utc": (now + timedelta(days=SHARE_TTL_DAYS)).isoformat(),
+        "sim": {
+            "r32": {mid: dict(slot) for mid, slot in sim.get("r32", {}).items()},
+            "winners": dict(sim.get("winners", {})),
+        },
+    }
+    return token
+
+
+def _user_shares(data, username, now):
+    """Active (non-expired) snapshots owned by `username`, newest first. Each row is
+    {token, days_left, created_utc} for the template (which builds the URL)."""
+    rows = []
+    for token, s in data.get("shared_sims", {}).items():
+        if s.get("owner") != username:
+            continue
+        days = _share_days_left(s.get("expires_utc"), now)
+        if days == 0:
+            continue
+        rows.append({"token": token, "days_left": days, "created_utc": s.get("created_utc", "")})
+    rows.sort(key=lambda r: r["created_utc"], reverse=True)
+    return rows
+
+
 def _sim_view(sim, match, by_id):
     """Display fields for one simulator match: resolved participants, the label to
     show in each slot (team → R32 origin code → feed placeholder → 'TBD'), the
