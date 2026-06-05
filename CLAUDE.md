@@ -91,7 +91,15 @@ matches start with `home_team`/`away_team` = null (TBD) and open once admin sets
 
 **Scoring (`compute_points`):** returns `{"score", "advance", "total"}`. Tier by
 `match["round"]` from the `TIERS` table. Score from full-time scoreline using the
-`_sign(a,b)` trick; advance points awarded separately. See README for the table.
+`_sign(a,b)` trick; advance points awarded separately (so a penalty shootout can't
+zero a correct scoreline). The `TIERS` table (`third` == `final`):
+
+| Outcome              | r32 | r16 | qf | sf | third/final |
+|----------------------|-----|-----|----|----|-------------|
+| `exact` (scoreline)  | 6   | 7   | 8  | 9  | 10          |
+| `gd` (result + GD)   | 4   | 5   | 5  | 6  | 7           |
+| `result` (1X2 only)  | 2   | 3   | 3  | 4  | 5           |
+| `advance` (added)    | +2  | +2  | +3 | +3 | +4          |
 
 **i18n:** EN + ES. Strings go through `translate()` / `_()` (injected into templates).
 Spanish lives in `translations.py` (separate module, not inline — a UCL lesson).
