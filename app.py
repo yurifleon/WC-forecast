@@ -16,7 +16,7 @@ load_data()/save_data(); DATA_DIR env var points it at a Render disk.
 import json
 import os
 import secrets
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -56,6 +56,8 @@ DISPLAY_TZ = _resolve_display_tz(os.environ.get("DISPLAY_TZ", _DEFAULT_TZ))
 DISPLAY_TZ_LABEL = os.environ.get("DISPLAY_TZ_LABEL", "CT")
 
 MAX_USERS = int(os.environ.get("MAX_USERS", "20"))
+SHARE_TTL_DAYS = 7            # a shared simulation snapshot lives this long
+MAX_SHARES_PER_USER = 10      # cap active shared links per user
 SUPPORTED_LANGS = {"en", "es"}
 
 # ---------------------------------------------------------------------------
@@ -428,6 +430,7 @@ def migrate_data(data):
     data.setdefault("users", {})
     data.setdefault("predictions", {})
     data.setdefault("simulations", {})
+    data.setdefault("shared_sims", {})
     data.setdefault("admin_password", DEFAULT_DATA["admin_password"])
 
     # Old format: users stored as a flat list of names.
