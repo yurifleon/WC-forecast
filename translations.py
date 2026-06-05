@@ -119,4 +119,15 @@ SPANISH_TRANSLATIONS = {
     "Pick a valid team for that match.": "Elige un equipo válido para ese partido.",
     "Invalid match.": "Partido inválido.",
     "Pick teams and winners to explore possible match-ups. This is just a sandbox — it is not scored and does not affect your predictions.": "Elige equipos y ganadores para explorar posibles enfrentamientos. Es solo una zona de práctica: no cuenta para los puntos ni afecta tus pronósticos.",
+    # Shared simulation links
+    "Save & share": "Guardar y compartir",
+    "Shared links": "Enlaces compartidos",
+    "Expires in {n} days": "Caduca en {n} días",
+    "Revoke": "Revocar",
+    "Link revoked.": "Enlace revocado.",
+    "Shared by {user}": "Compartido por {user}",
+    "Copy this link to share:": "Copia este enlace para compartir:",
+    "Nothing to share yet — make some picks first.": "Nada para compartir todavía — haz algunas selecciones primero.",
+    "You have too many active links. Revoke one first.": "Tienes demasiados enlaces activos. Revoca uno primero.",
+    "This shared bracket has expired or doesn't exist.": "Este cuadro compartido caducó o no existe.",
 }

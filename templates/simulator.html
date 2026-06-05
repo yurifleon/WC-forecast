@@ -57,6 +57,32 @@
 </div>
 <p class="text-muted small">{{ _("Pick teams and winners to explore possible match-ups. This is just a sandbox — it is not scored and does not affect your predictions.") }}</p>
 
+<div class="d-flex gap-2 flex-wrap mb-2">
+  <form method="post">
+    <input type="hidden" name="action" value="share">
+    <button class="btn btn-sm btn-outline-info" type="submit">{{ _("Save & share") }}</button>
+  </form>
+</div>
+
+{% if shares %}
+<div class="card mb-3"><div class="card-body p-2 small">
+  <div class="fw-bold mb-2">{{ _("Shared links") }}</div>
+  {% for sh in shares %}
+  <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+    <input class="form-control form-control-sm" style="max-width:300px" readonly
+           value="{{ url_for('shared_view', token=sh.token, _external=True) }}"
+           onclick="this.select()">
+    <span class="text-muted">{{ _("Expires in {n} days", n=sh.days_left) }}</span>
+    <form method="post">
+      <input type="hidden" name="action" value="revoke">
+      <input type="hidden" name="token" value="{{ sh.token }}">
+      <button class="btn btn-sm btn-outline-danger py-0" type="submit">{{ _("Revoke") }}</button>
+    </form>
+  </div>
+  {% endfor %}
+</div></div>
+{% endif %}
+
 <div class="bracket">
   {% for col in columns %}
   {% set is_feeder = col.round in ['r32', 'r16', 'qf', 'sf'] %}

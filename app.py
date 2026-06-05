@@ -16,7 +16,7 @@ load_data()/save_data(); DATA_DIR env var points it at a Render disk.
 import json
 import os
 import secrets
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -56,6 +56,8 @@ DISPLAY_TZ = _resolve_display_tz(os.environ.get("DISPLAY_TZ", _DEFAULT_TZ))
 DISPLAY_TZ_LABEL = os.environ.get("DISPLAY_TZ_LABEL", "CT")
 
 MAX_USERS = int(os.environ.get("MAX_USERS", "20"))
+SHARE_TTL_DAYS = 7            # a shared simulation snapshot lives this long
+MAX_SHARES_PER_USER = 10      # cap active shared links per user
 SUPPORTED_LANGS = {"en", "es"}
 
 # ---------------------------------------------------------------------------
@@ -280,6 +282,67 @@ def _prune_sim(sim):
     return sim
 
 
+def _share_days_left(expires_utc, now):
+    """Whole days until a snapshot expires, rounded UP (6d2h -> 7). Returns 0 when
+    already expired or the timestamp is unparseable (fail-closed, so callers treat
+    0 as 'expired')."""
+    try:
+        exp = datetime.fromisoformat(expires_utc)
+    except (TypeError, ValueError):
+        return 0
+    if exp.tzinfo is None:
+        exp = exp.replace(tzinfo=timezone.utc)
+    secs = (exp - now).total_seconds()
+    if secs <= 0:
+        return 0
+    return int((secs + 86399) // 86400)  # ceil to whole days
+
+
+def _purge_expired_shares(data, now):
+    """Delete every shared snapshot whose TTL has elapsed. Returns True if anything
+    was removed (so the caller can decide whether to save_data)."""
+    shares = data.setdefault("shared_sims", {})
+    dead = [t for t, s in shares.items() if _share_days_left(s.get("expires_utc"), now) == 0]
+    for t in dead:
+        del shares[t]
+    return bool(dead)
+
+
+def _create_share(data, username, sim, now):
+    """Freeze `sim` into a new token-addressed snapshot owned by `username`, valid for
+    SHARE_TTL_DAYS. The sim is deep-copied so later edits to the live sim never leak
+    into the snapshot. Returns the new token."""
+    shares = data.setdefault("shared_sims", {})
+    token = secrets.token_urlsafe(8)
+    while token in shares:
+        token = secrets.token_urlsafe(8)
+    shares[token] = {
+        "owner": username,
+        "created_utc": now.isoformat(),
+        "expires_utc": (now + timedelta(days=SHARE_TTL_DAYS)).isoformat(),
+        "sim": {
+            "r32": {mid: dict(slot) for mid, slot in sim.get("r32", {}).items()},
+            "winners": dict(sim.get("winners", {})),
+        },
+    }
+    return token
+
+
+def _user_shares(data, username, now):
+    """Active (non-expired) snapshots owned by `username`, newest first. Each row is
+    {token, days_left, created_utc} for the template (which builds the URL)."""
+    rows = []
+    for token, s in data.get("shared_sims", {}).items():
+        if s.get("owner") != username:
+            continue
+        days = _share_days_left(s.get("expires_utc"), now)
+        if days == 0:
+            continue
+        rows.append({"token": token, "days_left": days, "created_utc": s.get("created_utc", "")})
+    rows.sort(key=lambda r: r["created_utc"], reverse=True)
+    return rows
+
+
 def _sim_view(sim, match, by_id):
     """Display fields for one simulator match: resolved participants, the label to
     show in each slot (team → R32 origin code → feed placeholder → 'TBD'), the
@@ -428,6 +491,7 @@ def migrate_data(data):
     data.setdefault("users", {})
     data.setdefault("predictions", {})
     data.setdefault("simulations", {})
+    data.setdefault("shared_sims", {})
     data.setdefault("admin_password", DEFAULT_DATA["admin_password"])
 
     # Old format: users stored as a flat list of names.
@@ -919,6 +983,21 @@ def simulator():
                     _prune_sim(sim)
                 else:
                     flash(translate("Pick a valid team for that match."), "warning")
+        elif action == "share":
+            if not sim.get("r32") and not sim.get("winners"):
+                flash(translate("Nothing to share yet — make some picks first."), "warning")
+            elif len(_user_shares(data, username, get_cached_time())) >= MAX_SHARES_PER_USER:
+                flash(translate("You have too many active links. Revoke one first."), "warning")
+            else:
+                token = _create_share(data, username, sim, get_cached_time())
+                url = url_for("shared_view", token=token, _external=True)
+                flash(translate("Copy this link to share:") + " " + url, "success")
+        elif action == "revoke":
+            token = request.form.get("token")
+            share = data.get("shared_sims", {}).get(token)
+            if share and share.get("owner") == username:
+                data["shared_sims"].pop(token, None)
+                flash(translate("Link revoked."), "info")
         save_data(data)
         return redirect(url_for("simulator"))
 
@@ -926,8 +1005,11 @@ def simulator():
     # qualify) or duplicated across slots. Persist only if something actually changed.
     before = json.dumps(sim, sort_keys=True)
     _prune_sim(sim)
-    if json.dumps(sim, sort_keys=True) != before:
+    changed = json.dumps(sim, sort_keys=True) != before
+    changed = _purge_expired_shares(data, get_cached_time()) or changed
+    if changed:
         save_data(data)
+    shares = _user_shares(data, username, get_cached_time())
 
     tree_order = ["r32", "r16", "qf", "sf", "final"]
     columns = []
@@ -936,7 +1018,37 @@ def simulator():
         columns.append({"round": rnd, "matches": [_sim_view(sim, m, by_id) for m in rnd_matches]})
     third_match = next((m for m in data["matches"] if m.get("round") == "third"), None)
     third = _sim_view(sim, third_match, by_id) if third_match else None
-    return render_template("simulator.html", columns=columns, third=third)
+    return render_template("simulator.html", columns=columns, third=third, shares=shares)
+
+
+@app.route("/s/<token>")
+def shared_view(token):
+    data = load_data()
+    now = get_cached_time()
+    share = data.get("shared_sims", {}).get(token)
+    expired = share is not None and _share_days_left(share.get("expires_utc"), now) == 0
+    if share is None or expired:
+        if expired:
+            data["shared_sims"].pop(token, None)
+            save_data(data)
+        return render_template("shared_missing.html"), 404
+
+    sim = share["sim"]
+    by_id = {m["id"]: m for m in data["matches"]}
+    tree_order = ["r32", "r16", "qf", "sf", "final"]
+    columns = []
+    for rnd in tree_order:
+        rnd_matches = sorted_matches([m for m in data["matches"] if m.get("round") == rnd])
+        columns.append({"round": rnd, "matches": [_sim_view(sim, m, by_id) for m in rnd_matches]})
+    third_match = next((m for m in data["matches"] if m.get("round") == "third"), None)
+    third = _sim_view(sim, third_match, by_id) if third_match else None
+    return render_template(
+        "shared.html",
+        columns=columns,
+        third=third,
+        owner=share["owner"],
+        days_left=_share_days_left(share["expires_utc"], now),
+    )
 
 
 @app.route("/set-language/<lang>")
@@ -1032,6 +1144,9 @@ def admin():
             uname = request.form.get("username", "").strip().lower()
             data["users"].pop(uname, None)
             data["predictions"].pop(uname, None)   # clean orphaned predictions
+            data["simulations"].pop(uname, None)   # clean orphaned simulation
+            data["shared_sims"] = {t: s for t, s in data.get("shared_sims", {}).items()
+                                   if s.get("owner") != uname}  # drop their shared links
             flash(translate("User removed."), "success")
 
         save_data(data)

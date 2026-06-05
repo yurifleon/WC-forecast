@@ -110,7 +110,8 @@ Lang resolution: user `preferred_lang` → `session["lang"]` → `Accept-Languag
 `ADMIN_PASSWORD` env overrides stored value). No email reset yet; admin can reset.
 
 **Routes:** `/` (login), `/register`, `/logout`, `/dashboard`, `/predict/<id>`,
-`/leaderboard`, `/bracket`, `/simulator`, `/admin`, `/set-language/<lang>`.
+`/leaderboard`, `/bracket`, `/simulator`, `/s/<token>` (public, read-only shared sim),
+`/admin`, `/set-language/<lang>`.
 
 **Round sorting:** `ROUND_ORDER = {r32:0 … final:5}` sorts matches **chronologically**
 (Round of 32 first → Final last); unknown rounds last (99). `sorted_matches()` breaks
@@ -149,6 +150,14 @@ participants. `_sim_view()` adds `sim_home/sim_away`,
 `*_display` (team → R32 origin code → feed placeholder → `TBD`), `winner`, and the R32
 `*_pool` lists. POST actions: `set_teams`, `pick_winner`, `reset`. Same winner-flow
 tree layout as `/bracket` (third rendered separately).
+
+**Shared snapshots:** "Save & share" (`action=share`) deep-copies the user's sim into
+`data["shared_sims"][token]` (`token`=`secrets.token_urlsafe(8)`) with a 7-day
+`expires_utc`; the public, login-free `GET /s/<token>` (`shared_view`) renders it
+read-only via `_sim_view` over the frozen sim. Snapshots are **never** pruned. Owners
+see active links (`_user_shares`) with copy + `revoke`. Expiry is lazy — `_purge_expired_shares`
+runs on `/simulator` load and when `/s/` hits an expired token. Missing/expired both
+return the same 404 `shared_missing.html`.
 
 **Neutral-venue framing:** WC knockouts are at neutral sites, so the UI shows no
 home/away (local/visitor) labels (commit `15adefb`). The fields are still named

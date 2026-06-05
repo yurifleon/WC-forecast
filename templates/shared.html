@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% macro ro_slot(m, side) %}
+  {% set team = m.sim_home if side == 'home' else m.sim_away %}
+  {% set label = m.home_display if side == 'home' else m.away_display %}
+  {% if team %}
+  <div class="bracket-slot px-1 {{ 'fw-bold accent' if m.winner == team else 'team-pick' }}">
+    {{ team }}{% if m.winner == team %} ✓{% endif %}
+  </div>
+  {% else %}
+  <div class="bracket-slot text-muted fst-italic px-1">{{ label }}</div>
+  {% endif %}
+{% endmacro %}
+
+{% macro ro_card(m, show_champion=false) %}
+<div class="card">
+  <div class="card-body p-2 small">
+    <div class="accent fw-bold">{% if match_number(m) is not none %}M{{ match_number(m) }}{% endif %}{% if m.venue %}{% if match_number(m) is not none %} · {% endif %}{{ m.venue }}{% endif %}</div>
+    {% if m.kickoff_utc %}<div class="small text-muted">{{ m.kickoff_utc | deadline_tz }}</div>{% endif %}
+    {{ ro_slot(m, 'home') }}
+    {{ ro_slot(m, 'away') }}
+    {% if show_champion and m.winner %}
+    <div class="text-center mt-1">🏆 <span class="accent">{{ _("Champion") }}: {{ m.winner }}</span></div>
+    {% endif %}
+  </div>
+</div>
+{% endmacro %}
+
+{% block content %}
+<div class="mb-3">
+  <h3 class="mb-0">{{ _("Bracket Simulator") }}</h3>
+  <div class="text-muted small">{{ _("Shared by {user}", user=owner) }} · {{ _("Expires in {n} days", n=days_left) }}</div>
+</div>
+
+<div class="bracket">
+  {% for col in columns %}
+  {% set is_feeder = col.round in ['r32', 'r16', 'qf', 'sf'] %}
+  <div class="round round-{{ col.round }}">
+    <h6 class="accent text-center mb-3">{{ round_label(col.round) }}</h6>
+    {% for m in col.matches %}
+    <div class="bracket-match{% if is_feeder %}{{ ' feeder-top' if loop.index is odd else ' feeder-bottom' }}{% endif %}">
+      {{ ro_card(m, show_champion=(col.round == 'final')) }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+
+{% if third %}
+<div class="third-place mt-4">
+  <h6 class="accent">{{ round_label('third') }}</h6>
+  <div style="max-width:210px">{{ ro_card(third) }}</div>
+</div>
+{% endif %}
+{% endblock %}
