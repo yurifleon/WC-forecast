@@ -1003,6 +1003,36 @@ def simulator():
     return render_template("simulator.html", columns=columns, third=third)
 
 
+@app.route("/s/<token>")
+def shared_view(token):
+    data = load_data()
+    now = get_cached_time()
+    share = data.get("shared_sims", {}).get(token)
+    expired = share is not None and _share_days_left(share.get("expires_utc"), now) == 0
+    if share is None or expired:
+        if expired:
+            data["shared_sims"].pop(token, None)
+            save_data(data)
+        return render_template("shared_missing.html"), 404
+
+    sim = share["sim"]
+    by_id = {m["id"]: m for m in data["matches"]}
+    tree_order = ["r32", "r16", "qf", "sf", "final"]
+    columns = []
+    for rnd in tree_order:
+        rnd_matches = sorted_matches([m for m in data["matches"] if m.get("round") == rnd])
+        columns.append({"round": rnd, "matches": [_sim_view(sim, m, by_id) for m in rnd_matches]})
+    third_match = next((m for m in data["matches"] if m.get("round") == "third"), None)
+    third = _sim_view(sim, third_match, by_id) if third_match else None
+    return render_template(
+        "shared.html",
+        columns=columns,
+        third=third,
+        owner=share["owner"],
+        days_left=_share_days_left(share["expires_utc"], now),
+    )
+
+
 @app.route("/set-language/<lang>")
 def set_language(lang):
     if lang in SUPPORTED_LANGS:
