@@ -983,6 +983,21 @@ def simulator():
                     _prune_sim(sim)
                 else:
                     flash(translate("Pick a valid team for that match."), "warning")
+        elif action == "share":
+            if not sim.get("r32") and not sim.get("winners"):
+                flash(translate("Nothing to share yet — make some picks first."), "warning")
+            elif len(_user_shares(data, username, get_cached_time())) >= MAX_SHARES_PER_USER:
+                flash(translate("You have too many active links. Revoke one first."), "warning")
+            else:
+                token = _create_share(data, username, sim, get_cached_time())
+                url = url_for("shared_view", token=token, _external=True)
+                flash(translate("Copy this link to share:") + " " + url, "success")
+        elif action == "revoke":
+            token = request.form.get("token")
+            share = data.get("shared_sims", {}).get(token)
+            if share and share.get("owner") == username:
+                data["shared_sims"].pop(token, None)
+                flash(translate("Link revoked."), "info")
         save_data(data)
         return redirect(url_for("simulator"))
 
@@ -990,8 +1005,11 @@ def simulator():
     # qualify) or duplicated across slots. Persist only if something actually changed.
     before = json.dumps(sim, sort_keys=True)
     _prune_sim(sim)
-    if json.dumps(sim, sort_keys=True) != before:
+    changed = json.dumps(sim, sort_keys=True) != before
+    changed = _purge_expired_shares(data, get_cached_time()) or changed
+    if changed:
         save_data(data)
+    shares = _user_shares(data, username, get_cached_time())
 
     tree_order = ["r32", "r16", "qf", "sf", "final"]
     columns = []
@@ -1000,7 +1018,7 @@ def simulator():
         columns.append({"round": rnd, "matches": [_sim_view(sim, m, by_id) for m in rnd_matches]})
     third_match = next((m for m in data["matches"] if m.get("round") == "third"), None)
     third = _sim_view(sim, third_match, by_id) if third_match else None
-    return render_template("simulator.html", columns=columns, third=third)
+    return render_template("simulator.html", columns=columns, third=third, shares=shares)
 
 
 @app.route("/s/<token>")
