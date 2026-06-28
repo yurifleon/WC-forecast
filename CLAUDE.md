@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Guidance for Claude Code when working in this repo.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## What this is
 
@@ -28,6 +28,26 @@ m = {'round':'r32','home_score':2,'away_score':1,'advanced_team':'A'}
 print(compute_points({'home':2,'away':1,'advance':'A'}, m))  # {'score':6,'advance':2,'total':8}
 "
 ```
+
+## Configuration & deploy
+
+All config is via env vars (read at import in `app.py`):
+
+| Var | Default | Purpose |
+|-----|---------|---------|
+| `DATA_DIR` | project dir | Where `data.json` lives. **Must point at the Render persistent disk (`/data`) before first signup** or state is wiped each deploy. |
+| `SECRET_KEY` | dev fallback | Flask session secret. Set in prod. |
+| `ADMIN_PASSWORD` | value in `data.json` | Overrides the stored admin password (the only `sync: false` var in `render.yaml`). |
+| `DISPLAY_TZ` | `America/Chicago` | TZ deadlines render in and admin `datetime-local` input is interpreted as. Invalid name falls back via `_resolve_display_tz`. |
+| `DISPLAY_TZ_LABEL` | `CT` | Label shown next to times. |
+| `MAX_USERS` | `20` | Registration cap. |
+| `PORT` | `5000` | HTTP port (Render sets this; `app.py` dev server reads it too). |
+
+Deploy is Render via the `render.yaml` blueprint (Starter plan + 1GB disk at `/data`;
+`autoDeploy` on). `Procfile` runs `gunicorn app:app`; `runtime.txt` pins Python 3.12.3;
+`tzdata` is a hard requirement in `requirements.txt` (slim images lack a system zone DB).
+**Gotcha:** editing env vars in `render.yaml` does **not** sync to a live service — change
+them in the Render dashboard too. Free plan has no disk, so it wipes all state per deploy.
 
 ## Architecture
 
