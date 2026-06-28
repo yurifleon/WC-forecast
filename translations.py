@@ -109,6 +109,12 @@ SPANISH_TRANSLATIONS = {
     "Remove": "Eliminar",
     "User removed.": "Usuario eliminado.",
     "Password for {name} set to: {pw}": "Contraseña de {name} establecida en: {pw}",
+    "Clear": "Borrar",
+    "Clear all results": "Borrar todos los resultados",
+    "Clear this result?": "¿Borrar este resultado?",
+    "Clear all match results? This cannot be undone.": "¿Borrar todos los resultados? Esto no se puede deshacer.",
+    "Match result cleared.": "Resultado borrado.",
+    "All results cleared.": "Todos los resultados borrados.",
 
     # Simulator
     "Simulator": "Simulador",

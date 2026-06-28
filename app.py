@@ -668,6 +668,20 @@ def has_teams(match):
     return bool(match.get("home_team") and match.get("away_team"))
 
 
+def has_result(match):
+    """A match has a result once a score or an advancing team is recorded."""
+    return (match.get("home_score") is not None
+            or match.get("away_score") is not None
+            or bool(match.get("advanced_team")))
+
+
+def _clear_result(match):
+    """Wipe a match's result (score + advancing team), leaving schedule intact."""
+    match["home_score"] = None
+    match["away_score"] = None
+    match["advanced_team"] = None
+
+
 # ---------------------------------------------------------------------------
 # Scoring
 # ---------------------------------------------------------------------------
@@ -773,6 +787,7 @@ def inject_i18n_helpers():
         "is_locked": is_locked,
         "is_predictable": is_predictable,
         "has_teams": has_teams,
+        "has_result": has_result,
         "slot_label": slot_label,
         "match_number": match_number,
         "compute_points": compute_points,
@@ -1114,6 +1129,21 @@ def admin():
                 adv = (request.form.get("advanced_team") or "").strip()
                 m["advanced_team"] = adv if adv in (m["home_team"], m["away_team"]) else None
                 flash(translate("Match saved."), "success")
+
+        elif action == "clear_match_result":
+            # Wipe just this match's result (score + advancing team); leave the
+            # schedule (teams, kickoff, venue) intact so locking/predictability
+            # are unchanged.
+            mid = request.form.get("match_id")
+            m = next((x for x in data["matches"] if x["id"] == mid), None)
+            if m:
+                _clear_result(m)
+                flash(translate("Match result cleared."), "success")
+
+        elif action == "clear_all_results":
+            for m in data["matches"]:
+                _clear_result(m)
+            flash(translate("All results cleared."), "success")
 
         elif action == "add_user":
             uname = request.form.get("username", "").strip().lower()

@@ -24,6 +24,13 @@
 
 <div class="tab-content">
   <div class="tab-pane fade show active" id="tab-matches">
+    <div class="text-end mb-2">
+      <form method="post" action="{{ url_for('admin') }}" class="d-inline"
+            onsubmit="return confirm('{{ _('Clear all match results? This cannot be undone.') }}')">
+        <input type="hidden" name="action" value="clear_all_results">
+        <button class="btn btn-sm btn-outline-danger" type="submit">{{ _("Clear all results") }}</button>
+      </form>
+    </div>
     {% for m in matches %}
     <div class="card mb-2">
       <div class="card-body">
@@ -83,6 +90,14 @@
             <button class="btn btn-sm btn-wc" type="submit">{{ _("Save") }}</button>
           </div>
         </form>
+        {% if has_result(m) %}
+        <form method="post" action="{{ url_for('admin') }}" class="text-end mt-1"
+              onsubmit="return confirm('{{ _('Clear this result?') }}')">
+          <input type="hidden" name="action" value="clear_match_result">
+          <input type="hidden" name="match_id" value="{{ m.id }}">
+          <button class="btn btn-sm btn-outline-danger" type="submit">{{ _("Clear") }}</button>
+        </form>
+        {% endif %}
       </div>
     </div>
     {% endfor %}
