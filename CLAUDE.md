@@ -70,18 +70,21 @@ clobbered). `DATA_DIR` env var relocates the file to a Render disk. A per-reques
                 "kickoff_utc",            // tz-aware UTC ISO string, or null (TBD)
                 "home_score", "away_score", "advanced_team" }],
   "predictions": { "yuri": { "r32-1": { "home": 2, "away": 1, "advance": "Brazil" } } },
-  "simulations": { "yuri": { "r32": { "r32-1": { "home": "Brazil", "away": "Mexico" } },
-                             "winners": { "r32-1": "Brazil" } } }
+  "simulations": { "yuri": { "winners": { "r32-1": "Canada", "r16-1": "Morocco" } } }
 }
 ```
 Match `id` is a **string** everywhere (e.g. `"r32-1"`) — no int/str split like UCL had.
 Predictions are keyed by the same string id.
 
 **Real schedule (`MATCH_SCHEDULE`):** the actual FIFA WC 2026 knockout bracket
-(origins + venues + UTC kickoffs) is hardcoded and seeded/backfilled on load. Source
-schedule docs: `round_of_32_schedule.md`, `round_of_16_and_on_schedule.md`,
-`schedule_bracket.md`, `FIFA_WC_2026_Master_Guide.md`. R32 matches carry group-stage
-`*_origin` slot codes; R16+ leave teams null and rely on bracket feed labels.
+(origins + venues + UTC kickoffs + now the known **R32 teams**) is hardcoded and
+seeded/backfilled fill-if-empty on load (admin edits always win). Source schedule docs:
+`knockout-round.md` (R32 matchups + the authoritative non-sequential R16 feed),
+`round_of_32_schedule.md`, `round_of_16_and_on_schedule.md`, `schedule_bracket.md`,
+`FIFA_WC_2026_Master_Guide.md`. R32 entries carry group-stage `*_origin` slot codes
+**and** real `home_team`/`away_team` (the group stage is over); R16+ leave teams null
+and rely on bracket feed labels. Note: team names use the GROUPS canonical form
+(e.g. `Côte d'Ivoire`, not "Ivory Coast").
 
 **FIFA match numbers (`match_number`):** every knockout game has a FIFA match number
 M73–M104, derived from round + numeric id suffix (`r32-1`→73 … `final-1`→104) via
@@ -141,35 +144,34 @@ tree layout (see Bracket view).
 
 **Bracket view (`/bracket`):** renders the knockout as a **winner-flow tree**, not flat
 columns. The feeding relationship is **derived, not stored** — `feeders(match)` maps a
-match to the two previous-round matches feeding it (match *k* ← `(2k-1, 2k)`;
-`final`/`third` ← `sf-1`/`sf-2`, winners/losers respectively). `feed_label_pair()` turns
-that into placeholder labels (`Winner R32-1`, `Loser SF-2`, via `ROUND_CODE_SHORT`)
-shown in empty downstream slots until the admin fills real teams. The route builds
-`columns` over `["r32","r16","qf","sf","final"]` (each match resolved through
-`_bracket_view`, which adds `*_display`/`*_is_placeholder` fields) and passes `third`
-**separately** as a standalone card (it's fed by SF losers, so it sits outside the
-winner tree). Connectors are **pure CSS** — `:is()` elbow pseudo-elements in
-`base.html`; alignment relies on equal-flex match cells + the flex-default
-`align-items:stretch` (load-bearing). Design + plan: `docs/superpowers/specs/` and
-`docs/superpowers/plans/`.
+match to the two previous-round matches feeding it. QF→Final use the sequential rule
+(match *k* ← `(2k-1, 2k)`; `final`/`third` ← `sf-1`/`sf-2`, winners/losers). **R16 is the
+exception:** the real FIFA WC26 bracket pairs R32 winners **non-sequentially**, so R16
+feeders come from the explicit `_R16_FEED` map (`r16-1` ← `r32-1` + `r32-3`, etc.; source
+`knockout-round.md`, M89–M96). `feed_label_pair()` turns feeders into placeholder labels
+(`Winner R32-3`, `Loser SF-2`, via `ROUND_CODE_SHORT`) shown in empty downstream slots
+until real teams arrive. The route builds `columns` over `["r32","r16","qf","sf","final"]`
+(each match resolved through `_bracket_view`, which adds `*_display`/`*_is_placeholder`),
+passing `third` **separately**. The R32 column is ordered by `_tree_order` →
+`_BRACKET_R32_ORDER` (each R16's two feeders laid out adjacently) so the **pure-CSS**
+connectors line up — `:is()` elbow pseudo-elements in `base.html`; alignment relies on
+equal-flex match cells + flex-default `align-items:stretch` (load-bearing). Other rounds
+use numeric order; dashboard/admin/predict use `sorted_matches` (numeric), unaffected.
+Design + plan: `docs/superpowers/specs/` and `docs/superpowers/plans/`.
 
 **Simulator (`/simulator`):** a private per-user "what-if" bracket, **completely
 separate from `predictions`/scoring** — it earns no points and lives under its own
-`data["simulations"][username]` key (`{"r32": {match_id: {home, away}}, "winners":
-{match_id: team}}`). The user fills R32 slots from each slot's group pool
-(`_sim_pool(match, side, sim)` → origin group(s), all 48 as fallback) and then picks a
-winner per match; downstream participants are **derived, not stored** —
-`_sim_participants()` walks `feeders()` (winner of each feeder; third-place = the SF
-*loser*). **Global team uniqueness is enforced:** when `sim` is passed, `_sim_pool`
-drops nations already chosen in other r32 slots (`_sim_used_teams`), so a team can never
-be fielded twice and thus never face itself downstream. `_prune_sim()` runs after every
-mutation (and self-heals legacy sims on view): it first clears r32 picks no longer in
-their pool (e.g. a team that didn't qualify) and de-dups nations across slots, then
-cascades r32→final→third to drop winners no longer valid for their (possibly changed)
-participants. `_sim_view()` adds `sim_home/sim_away`,
-`*_display` (team → R32 origin code → feed placeholder → `TBD`), `winner`, and the R32
-`*_pool` lists. POST actions: `set_teams`, `pick_winner`, `reset`. Same winner-flow
-tree layout as `/bracket` (third rendered separately).
+`data["simulations"][username]` key (`{"winners": {match_id: team}}`). Now that the group
+stage is over, **R32 is locked to the real matchups** — the simulator no longer lets users
+pick R32 teams; they only **pick the winner** of each match and the bracket cascades
+forward. Participants are **derived, not stored** — `_sim_participants()` returns the real
+`home_team`/`away_team` for R32, and for R16+ walks `feeders()` (winner of each feeder;
+third-place = the SF *loser*). `_prune_sim(sim, by_id)` runs after every mutation (and
+self-heals on view): it sheds the legacy `r32` key from pre-lock sims and cascades
+r32→final→third to drop winners no longer valid for their (possibly changed) participants.
+`_sim_view()` adds `sim_home/sim_away`, `*_display` (team → R32 origin code → feed
+placeholder → `TBD`), and `winner`. POST actions: `pick_winner`, `reset`, `share`,
+`revoke`. Same winner-flow tree layout as `/bracket` (third rendered separately).
 
 **Shared snapshots:** "Save & share" (`action=share`) deep-copies the user's sim into
 `data["shared_sims"][token]` (`token`=`secrets.token_urlsafe(8)`) with a 7-day

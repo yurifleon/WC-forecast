@@ -90,8 +90,27 @@ ROUND_CODE_SHORT = {"r32": "R32", "r16": "R16", "qf": "QF", "sf": "SF"}
 
 # Standard bracket pairing: match k of a round is fed by matches (2k-1, 2k) of the
 # previous round; the third-place play-off and the final both draw from the two
-# semifinals (losers and winners respectively).
+# semifinals (losers and winners respectively). This holds for QF -> Final.
 _FEEDER_PREV = {"r16": "r32", "qf": "r16", "sf": "qf", "final": "sf", "third": "sf"}
+
+# Round of 16 is the exception: the real FIFA WC 2026 bracket pairs R32 winners
+# NON-sequentially (source: knockout-round.md, M89-M96). Each r16 match maps to its
+# two feeding R32 matches explicitly. QF onward stay sequential (2k-1, 2k).
+_R16_FEED = {
+    "r16-1": ("r32-1", "r32-3"),    # M89: W73 vs W75
+    "r16-2": ("r32-2", "r32-5"),    # M90: W74 vs W77
+    "r16-3": ("r32-4", "r32-6"),    # M91: W76 vs W78
+    "r16-4": ("r32-7", "r32-8"),    # M92: W79 vs W80
+    "r16-5": ("r32-11", "r32-12"),  # M93: W83 vs W84
+    "r16-6": ("r32-9", "r32-10"),   # M94: W81 vs W82
+    "r16-7": ("r32-14", "r32-16"),  # M95: W86 vs W88
+    "r16-8": ("r32-13", "r32-15"),  # M96: W85 vs W87
+}
+
+# R32 column order for the bracket/simulator tree: each r16's two feeders laid out
+# adjacently (top then bottom) so the pure-CSS connectors line up. Other rounds use
+# numeric order (sorted_matches); only R32 needs reshuffling because of _R16_FEED.
+_BRACKET_R32_ORDER = [fid for k in range(1, 9) for fid in _R16_FEED[f"r16-{k}"]]
 
 # 48 participating nations by group (source: FIFA_WC_2026_Master_Guide.md). Used to
 # narrow the admin team dropdown to a match's possible teams.
@@ -124,6 +143,9 @@ def feeders(match):
     word = "Loser" if rnd == "third" else "Winner"
     if rnd in ("final", "third"):
         return (word, "sf-1", "sf-2")
+    if rnd == "r16":  # non-sequential real bracket; see _R16_FEED
+        pair = _R16_FEED.get(match.get("id"))
+        return (word, pair[0], pair[1]) if pair else None
     try:
         k = int(str(match["id"]).rsplit("-", 1)[-1])
     except (ValueError, KeyError):
@@ -186,46 +208,15 @@ def team_options(match, side, by_id):
     return [adv] if adv else []
 
 
-def _sim_used_teams(sim, exclude=None):
-    """Nations already assigned to any Round-of-32 slot in the sim. `exclude` is an
-    optional (match_id, side) pair whose own pick is omitted — pass the slot being
-    edited/rendered so its current team stays selectable in its own dropdown."""
-    used = set()
-    for mid, slot in sim.get("r32", {}).items():
-        for s in ("home", "away"):
-            if exclude and (mid, s) == exclude:
-                continue
-            team = slot.get(s)
-            if team:
-                used.add(team)
-    return used
-
-
-def _sim_pool(match, side, sim=None):
-    """Candidate teams for one Round-of-32 slot in the simulator: every nation in
-    the slot's origin group(s), sorted and de-duplicated. Falls back to all 48
-    teams if the origin is unparseable. R16+ slots have no pool (return []).
-    When `sim` is given, nations already picked in OTHER r32 slots are dropped, so
-    a team can never be fielded in two slots (and thus never face itself)."""
-    if match.get("round") != "r32":
-        return []
-    origin = match.get(f"{side}_origin")
-    teams = sorted({t for g in _origin_groups(origin) for t in GROUPS[g]}) or list(ALL_TEAMS)
-    if sim is not None:
-        used = _sim_used_teams(sim, exclude=(match["id"], side))
-        teams = [t for t in teams if t not in used]
-    return teams
-
-
 def _sim_participants(sim, match, by_id):
     """Return (home, away) team names for a simulator match; either may be None when
-    undecided. R32: from the user's stored slot. R16+: the winner of each feeder
-    match. Third-place: the LOSER of each feeding semifinal (the participant that is
-    not that SF's winner). Pure-ish: reads sim + by_id, no app context needed."""
+    undecided. R32: the real match teams (the bracket is decided, so the simulator no
+    longer lets users pick R32 teams — they only pick winners). R16+: the winner of
+    each feeder match. Third-place: the LOSER of each feeding semifinal (the
+    participant that is not that SF's winner). Pure-ish: reads sim + by_id."""
     rnd = match.get("round")
     if rnd == "r32":
-        slot = sim.get("r32", {}).get(match["id"], {})
-        return (slot.get("home"), slot.get("away"))
+        return (match.get("home_team"), match.get("away_team"))
     f = feeders(match)
     if not f:
         return (None, None)
@@ -248,26 +239,13 @@ def _sim_participants(sim, match, by_id):
     return (resolve(top), resolve(bot))
 
 
-def _prune_sim(sim):
-    """Heal a sim in place, then return it. First the Round-of-32 picks: drop any
-    team no longer in its slot's pool (e.g. a nation that didn't qualify) and de-dup
-    so each nation occupies at most one slot (first slot in r32-1…r32-16 order wins).
-    Then drop any stored winner that is no longer one of its match's current
-    participants, walking rounds in dependency order (r32 → final, then third) so
-    invalidations cascade downstream."""
-    by_id = {m["id"]: m for m in _seed_matches()}  # structural map (round + feeders)
-    r32 = sim.setdefault("r32", {})
-    seen = set()
-    for mid in sorted(r32, key=lambda k: int(k.split("-")[-1])):
-        match, slot = by_id.get(mid), r32[mid]
-        for side in ("home", "away"):
-            team = slot.get(side)
-            if not team:
-                continue
-            if not match or team not in _sim_pool(match, side) or team in seen:
-                slot[side] = None
-            else:
-                seen.add(team)
+def _prune_sim(sim, by_id):
+    """Heal a sim in place, then return it. Drop any stored winner that is no longer
+    one of its match's current participants, walking rounds in dependency order
+    (r32 → final, then third) so invalidations cascade downstream. `by_id` is the real
+    {id: match} map, so R32 participants resolve from the actual teams. Also drops the
+    obsolete `r32` key left by pre-lock sims (teams are no longer user-picked)."""
+    sim.pop("r32", None)  # legacy: simulator no longer stores R32 team picks
     winners = sim.setdefault("winners", {})
     for rnd in ("r32", "r16", "qf", "sf", "final", "third"):
         for mid, match in by_id.items():
@@ -345,8 +323,8 @@ def _user_shares(data, username, now):
 
 def _sim_view(sim, match, by_id):
     """Display fields for one simulator match: resolved participants, the label to
-    show in each slot (team → R32 origin code → feed placeholder → 'TBD'), the
-    current winner, and the R32 selectable pools (empty for R16+)."""
+    show in each slot (team → R32 origin code → feed placeholder → 'TBD'), and the
+    current winner."""
     home, away = _sim_participants(sim, match, by_id)
     top_lbl, bot_lbl = feed_label_pair(match)
     is_r32 = match.get("round") == "r32"
@@ -365,8 +343,6 @@ def _sim_view(sim, match, by_id):
         "home_display": label(home, match.get("home_origin"), top_lbl),
         "away_display": label(away, match.get("away_origin"), bot_lbl),
         "winner": sim.get("winners", {}).get(match["id"]),
-        "home_pool": _sim_pool(match, "home", sim),
-        "away_pool": _sim_pool(match, "away", sim),
     }
 
 
@@ -415,23 +391,25 @@ DEFAULT_DATA = {
 # and re-derived + asserted in this task's test. R32 entries carry group-stage origin
 # slots; R16+ rely on the bracket feed labels ("Winner R32-1") instead.
 MATCH_SCHEDULE = {
-    # Round of 32 (origins + kickoff + venue)
-    "r32-1":  {"home_origin": "2A", "away_origin": "2B",            "kickoff_utc": "2026-06-28T19:00:00+00:00", "venue": "Los Angeles, USA"},
-    "r32-2":  {"home_origin": "1E", "away_origin": "3rd A/B/C/D/F", "kickoff_utc": "2026-06-29T20:30:00+00:00", "venue": "Boston, USA"},
-    "r32-3":  {"home_origin": "1F", "away_origin": "2C",            "kickoff_utc": "2026-06-30T01:00:00+00:00", "venue": "Monterrey, Mexico"},
-    "r32-4":  {"home_origin": "1C", "away_origin": "2F",            "kickoff_utc": "2026-06-29T17:00:00+00:00", "venue": "Houston, USA"},
-    "r32-5":  {"home_origin": "1I", "away_origin": "3rd C/D/F/G/H", "kickoff_utc": "2026-06-29T21:00:00+00:00", "venue": "New York/New Jersey, USA"},
-    "r32-6":  {"home_origin": "2E", "away_origin": "2I",            "kickoff_utc": "2026-06-30T17:00:00+00:00", "venue": "Dallas, USA"},
-    "r32-7":  {"home_origin": "1A", "away_origin": "3rd C/E/F/H/I", "kickoff_utc": "2026-07-01T01:00:00+00:00", "venue": "Mexico City, Mexico"},
-    "r32-8":  {"home_origin": "1L", "away_origin": "3rd E/H/I/J/K", "kickoff_utc": "2026-06-30T16:00:00+00:00", "venue": "Atlanta, USA"},
-    "r32-9":  {"home_origin": "1D", "away_origin": "3rd B/E/F/I/J", "kickoff_utc": "2026-07-01T00:00:00+00:00", "venue": "San Francisco Bay Area, USA"},
-    "r32-10": {"home_origin": "1G", "away_origin": "3rd A/E/H/I/J", "kickoff_utc": "2026-07-01T20:00:00+00:00", "venue": "Seattle, USA"},
-    "r32-11": {"home_origin": "2K", "away_origin": "2L",            "kickoff_utc": "2026-07-02T23:00:00+00:00", "venue": "Toronto, Canada"},
-    "r32-12": {"home_origin": "1H", "away_origin": "2J",            "kickoff_utc": "2026-07-02T19:00:00+00:00", "venue": "Los Angeles, USA"},
-    "r32-13": {"home_origin": "1B", "away_origin": "3rd E/F/G/I/J", "kickoff_utc": "2026-07-03T03:00:00+00:00", "venue": "Vancouver, Canada"},
-    "r32-14": {"home_origin": "1J", "away_origin": "2H",            "kickoff_utc": "2026-07-03T22:00:00+00:00", "venue": "Miami, USA"},
-    "r32-15": {"home_origin": "1K", "away_origin": "3rd D/E/I/J/L", "kickoff_utc": "2026-07-04T01:30:00+00:00", "venue": "Kansas City, USA"},
-    "r32-16": {"home_origin": "2D", "away_origin": "2G",            "kickoff_utc": "2026-07-03T18:00:00+00:00", "venue": "Dallas, USA"},
+    # Round of 32 (origins + real teams + kickoff + venue). Teams set once the group
+    # stage finished (source: knockout-round.md, M73-M88; "Ivory Coast" -> the GROUPS
+    # canonical "Côte d'Ivoire"). Backfilled fill-if-empty, so admin edits win.
+    "r32-1":  {"home_origin": "2A", "away_origin": "2B",            "home_team": "South Africa", "away_team": "Canada",                 "kickoff_utc": "2026-06-28T19:00:00+00:00", "venue": "Los Angeles, USA"},
+    "r32-2":  {"home_origin": "1E", "away_origin": "3rd A/B/C/D/F", "home_team": "Germany",      "away_team": "Paraguay",               "kickoff_utc": "2026-06-29T20:30:00+00:00", "venue": "Boston, USA"},
+    "r32-3":  {"home_origin": "1F", "away_origin": "2C",            "home_team": "Netherlands",  "away_team": "Morocco",                "kickoff_utc": "2026-06-30T01:00:00+00:00", "venue": "Monterrey, Mexico"},
+    "r32-4":  {"home_origin": "1C", "away_origin": "2F",            "home_team": "Brazil",       "away_team": "Japan",                  "kickoff_utc": "2026-06-29T17:00:00+00:00", "venue": "Houston, USA"},
+    "r32-5":  {"home_origin": "1I", "away_origin": "3rd C/D/F/G/H", "home_team": "France",       "away_team": "Sweden",                 "kickoff_utc": "2026-06-29T21:00:00+00:00", "venue": "New York/New Jersey, USA"},
+    "r32-6":  {"home_origin": "2E", "away_origin": "2I",            "home_team": "Côte d'Ivoire","away_team": "Norway",                 "kickoff_utc": "2026-06-30T17:00:00+00:00", "venue": "Dallas, USA"},
+    "r32-7":  {"home_origin": "1A", "away_origin": "3rd C/E/F/H/I", "home_team": "Mexico",       "away_team": "Ecuador",                "kickoff_utc": "2026-07-01T01:00:00+00:00", "venue": "Mexico City, Mexico"},
+    "r32-8":  {"home_origin": "1L", "away_origin": "3rd E/H/I/J/K", "home_team": "England",      "away_team": "DR Congo",               "kickoff_utc": "2026-06-30T16:00:00+00:00", "venue": "Atlanta, USA"},
+    "r32-9":  {"home_origin": "1D", "away_origin": "3rd B/E/F/I/J", "home_team": "United States","away_team": "Bosnia and Herzegovina", "kickoff_utc": "2026-07-01T00:00:00+00:00", "venue": "San Francisco Bay Area, USA"},
+    "r32-10": {"home_origin": "1G", "away_origin": "3rd A/E/H/I/J", "home_team": "Belgium",      "away_team": "Senegal",                "kickoff_utc": "2026-07-01T20:00:00+00:00", "venue": "Seattle, USA"},
+    "r32-11": {"home_origin": "2K", "away_origin": "2L",            "home_team": "Portugal",     "away_team": "Croatia",                "kickoff_utc": "2026-07-02T23:00:00+00:00", "venue": "Toronto, Canada"},
+    "r32-12": {"home_origin": "1H", "away_origin": "2J",            "home_team": "Spain",        "away_team": "Austria",                "kickoff_utc": "2026-07-02T19:00:00+00:00", "venue": "Los Angeles, USA"},
+    "r32-13": {"home_origin": "1B", "away_origin": "3rd E/F/G/I/J", "home_team": "Switzerland",  "away_team": "Algeria",                "kickoff_utc": "2026-07-03T03:00:00+00:00", "venue": "Vancouver, Canada"},
+    "r32-14": {"home_origin": "1J", "away_origin": "2H",            "home_team": "Argentina",    "away_team": "Cape Verde",             "kickoff_utc": "2026-07-03T22:00:00+00:00", "venue": "Miami, USA"},
+    "r32-15": {"home_origin": "1K", "away_origin": "3rd D/E/I/J/L", "home_team": "Colombia",     "away_team": "Ghana",                  "kickoff_utc": "2026-07-04T01:30:00+00:00", "venue": "Kansas City, USA"},
+    "r32-16": {"home_origin": "2D", "away_origin": "2G",            "home_team": "Australia",    "away_team": "Egypt",                  "kickoff_utc": "2026-07-03T18:00:00+00:00", "venue": "Dallas, USA"},
     # Round of 16 -> Final (kickoff + venue; origins omitted — feed labels render "Winner M…")
     "r16-1":  {"kickoff_utc": "2026-07-05T16:00:00+00:00", "venue": "Philadelphia, USA"},
     "r16-2":  {"kickoff_utc": "2026-07-05T22:00:00+00:00", "venue": "Houston, USA"},
@@ -468,8 +446,8 @@ def _seed_matches():
             matches.append({
                 "id": mid,
                 "round": rnd,
-                "home_team": None,
-                "away_team": None,
+                "home_team": sched.get("home_team"),  # real team once known, else None (TBD)
+                "away_team": sched.get("away_team"),
                 "home_origin": sched.get("home_origin"),  # R32 slot code; None for R16+
                 "away_origin": sched.get("away_origin"),
                 "venue": sched.get("venue"),               # host city, or None
@@ -530,9 +508,9 @@ def migrate_data(data):
             m["round"] = "r32"
             changed = True
 
-    # Backfill the real knockout schedule (origins/kickoff/venue) where still empty.
-    # Fill-if-empty + idempotent: never clobber admin-entered teams/scores or a
-    # manually-set kickoff. Real home_team/away_team are never touched here.
+    # Backfill the real knockout schedule (origins/teams/kickoff/venue) where still
+    # empty. Fill-if-empty + idempotent: never clobber admin-entered teams/scores or a
+    # manually-set kickoff. Known R32 teams (MATCH_SCHEDULE) seed empty slots here too.
     for m in data["matches"]:
         sched = MATCH_SCHEDULE.get(m["id"])
         if not sched:
@@ -750,6 +728,16 @@ def sorted_matches(matches):
     return sorted(matches, key=_match_sort_key)
 
 
+def _tree_order(rnd, matches):
+    """Order one round's matches for the bracket/simulator winner-flow tree. R32 is
+    laid out by _BRACKET_R32_ORDER so each r16's feeders sit adjacent (CSS connectors
+    line up); every other round uses numeric order."""
+    if rnd == "r32":
+        idx = {mid: i for i, mid in enumerate(_BRACKET_R32_ORDER)}
+        return sorted(matches, key=lambda m: idx.get(m["id"], 99))
+    return sorted_matches(matches)
+
+
 # ---------------------------------------------------------------------------
 # i18n
 # ---------------------------------------------------------------------------
@@ -945,7 +933,7 @@ def bracket():
     tree_order = ["r32", "r16", "qf", "sf", "final"]
     columns = []
     for rnd in tree_order:
-        rnd_matches = sorted_matches([m for m in data["matches"] if m.get("round") == rnd])
+        rnd_matches = _tree_order(rnd, [m for m in data["matches"] if m.get("round") == rnd])
         columns.append({"round": rnd, "matches": [_bracket_view(m) for m in rnd_matches]})
     third_match = next((m for m in data["matches"] if m.get("round") == "third"), None)
     third = _bracket_view(third_match) if third_match else None
@@ -959,35 +947,15 @@ def simulator():
     data = load_data()
     username = session["username"]
     sims = data.setdefault("simulations", {})
-    sim = sims.setdefault(username, {"r32": {}, "winners": {}})
-    sim.setdefault("r32", {})
+    sim = sims.setdefault(username, {"winners": {}})
     sim.setdefault("winners", {})
     by_id = {m["id"]: m for m in data["matches"]}
 
     if request.method == "POST":
         action = request.form.get("action")
         if action == "reset":
-            sims[username] = {"r32": {}, "winners": {}}
+            sims[username] = {"winners": {}}
             flash(translate("Simulator reset."), "info")
-        elif action == "set_teams":
-            match = by_id.get(request.form.get("match_id"))
-            if match and match.get("round") == "r32":
-                home = request.form.get("home") or None
-                away = request.form.get("away") or None
-                # Clear this slot first so old picks don't shadow the new ones, then
-                # validate each side against the sim-aware pool (which excludes teams
-                # used elsewhere). Storing home before validating away makes the away
-                # pool exclude it too — so a nation can't be fielded against itself.
-                sim["r32"].pop(match["id"], None)
-                if home and home not in _sim_pool(match, "home", sim):
-                    home = None
-                sim["r32"][match["id"]] = {"home": home, "away": None}
-                if away and away not in _sim_pool(match, "away", sim):
-                    away = None
-                sim["r32"][match["id"]]["away"] = away
-                _prune_sim(sim)
-            else:
-                flash(translate("Invalid match."), "danger")
         elif action == "pick_winner":
             match = by_id.get(request.form.get("match_id"))
             team = request.form.get("team")
@@ -995,11 +963,11 @@ def simulator():
                 home, away = _sim_participants(sim, match, by_id)
                 if team and team in (home, away):
                     sim["winners"][match["id"]] = team
-                    _prune_sim(sim)
+                    _prune_sim(sim, by_id)
                 else:
                     flash(translate("Pick a valid team for that match."), "warning")
         elif action == "share":
-            if not sim.get("r32") and not sim.get("winners"):
+            if not sim.get("winners"):
                 flash(translate("Nothing to share yet — make some picks first."), "warning")
             elif len(_user_shares(data, username, get_cached_time())) >= MAX_SHARES_PER_USER:
                 flash(translate("You have too many active links. Revoke one first."), "warning")
@@ -1016,10 +984,10 @@ def simulator():
         save_data(data)
         return redirect(url_for("simulator"))
 
-    # Self-heal legacy sims on view: drop picks now invalid (e.g. a team that didn't
-    # qualify) or duplicated across slots. Persist only if something actually changed.
+    # Self-heal sims on view: drop winners no longer valid for their match's current
+    # participants and shed the legacy r32 key. Persist only if something changed.
     before = json.dumps(sim, sort_keys=True)
-    _prune_sim(sim)
+    _prune_sim(sim, by_id)
     changed = json.dumps(sim, sort_keys=True) != before
     changed = _purge_expired_shares(data, get_cached_time()) or changed
     if changed:
@@ -1029,7 +997,7 @@ def simulator():
     tree_order = ["r32", "r16", "qf", "sf", "final"]
     columns = []
     for rnd in tree_order:
-        rnd_matches = sorted_matches([m for m in data["matches"] if m.get("round") == rnd])
+        rnd_matches = _tree_order(rnd, [m for m in data["matches"] if m.get("round") == rnd])
         columns.append({"round": rnd, "matches": [_sim_view(sim, m, by_id) for m in rnd_matches]})
     third_match = next((m for m in data["matches"] if m.get("round") == "third"), None)
     third = _sim_view(sim, third_match, by_id) if third_match else None
@@ -1053,7 +1021,7 @@ def shared_view(token):
     tree_order = ["r32", "r16", "qf", "sf", "final"]
     columns = []
     for rnd in tree_order:
-        rnd_matches = sorted_matches([m for m in data["matches"] if m.get("round") == rnd])
+        rnd_matches = _tree_order(rnd, [m for m in data["matches"] if m.get("round") == rnd])
         columns.append({"round": rnd, "matches": [_sim_view(sim, m, by_id) for m in rnd_matches]})
     third_match = next((m for m in data["matches"] if m.get("round") == "third"), None)
     third = _sim_view(sim, third_match, by_id) if third_match else None

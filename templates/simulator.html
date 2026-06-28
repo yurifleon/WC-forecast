@@ -23,21 +23,6 @@
   <div class="card-body p-2 small">
     <div class="accent fw-bold">{% if match_number(m) is not none %}M{{ match_number(m) }}{% endif %}{% if m.venue %}{% if match_number(m) is not none %} · {% endif %}{{ m.venue }}{% endif %}</div>
     {% if m.kickoff_utc %}<div class="small text-muted">{{ m.kickoff_utc | deadline_tz }}</div>{% endif %}
-    {% if m.round == 'r32' %}
-    <form method="post" class="d-flex flex-column gap-1 mb-1">
-      <input type="hidden" name="action" value="set_teams">
-      <input type="hidden" name="match_id" value="{{ m.id }}">
-      <select name="home" class="form-select form-select-sm">
-        <option value="">{{ m.home_origin or _("TBD") }}</option>
-        {% for t in m.home_pool %}<option value="{{ t }}"{{ ' selected' if t == m.sim_home }}>{{ t }}</option>{% endfor %}
-      </select>
-      <select name="away" class="form-select form-select-sm">
-        <option value="">{{ m.away_origin or _("TBD") }}</option>
-        {% for t in m.away_pool %}<option value="{{ t }}"{{ ' selected' if t == m.sim_away }}>{{ t }}</option>{% endfor %}
-      </select>
-      <button class="btn btn-sm btn-outline-light py-0" type="submit">{{ _("Set teams") }}</button>
-    </form>
-    {% endif %}
     {{ slot_btn(m, 'home') }}
     {{ slot_btn(m, 'away') }}
     {% if show_champion and m.winner %}
@@ -55,7 +40,7 @@
     <button class="btn btn-sm btn-outline-danger" type="submit">{{ _("Reset simulator") }}</button>
   </form>
 </div>
-<p class="text-muted small">{{ _("Pick teams and winners to explore possible match-ups. This is just a sandbox — it is not scored and does not affect your predictions.") }}</p>
+<p class="text-muted small">{{ _("Pick the winner of each match to play out the bracket. This is just a sandbox — it is not scored and does not affect your predictions.") }}</p>
 
 <div class="d-flex gap-2 flex-wrap mb-2">
   <form method="post">

@@ -121,10 +121,8 @@ SPANISH_TRANSLATIONS = {
     "Bracket Simulator": "Simulador de Cuadro",
     "Reset simulator": "Reiniciar simulador",
     "Simulator reset.": "Simulador reiniciado.",
-    "Set teams": "Definir equipos",
     "Pick a valid team for that match.": "Elige un equipo válido para ese partido.",
-    "Invalid match.": "Partido inválido.",
-    "Pick teams and winners to explore possible match-ups. This is just a sandbox — it is not scored and does not affect your predictions.": "Elige equipos y ganadores para explorar posibles enfrentamientos. Es solo una zona de práctica: no cuenta para los puntos ni afecta tus pronósticos.",
+    "Pick the winner of each match to play out the bracket. This is just a sandbox — it is not scored and does not affect your predictions.": "Elige el ganador de cada partido para jugar el cuadro. Es solo una zona de práctica: no cuenta para los puntos ni afecta tus pronósticos.",
     # Shared simulation links
     "Save & share": "Guardar y compartir",
     "Shared links": "Enlaces compartidos",
