@@ -197,6 +197,8 @@ Python helpers and inject view helpers via the `inject_i18n_helpers` context pro
 - `flash(..., "danger"|"warning"|"success"|"info")` for feedback; catch specific
   exceptions (`ValueError`, `TypeError`, `KeyError`).
 - Keep business logic in Python helpers, not templates.
+- No linter/formatter is configured — style is enforced by convention only;
+  `python -m py_compile` is the sole automated check.
 
 ## Gotchas
 
