@@ -130,6 +130,35 @@ GROUPS = {
 }
 ALL_TEAMS = sorted({t for teams in GROUPS.values() for t in teams})  # 48; dropdown fallback
 
+# 3-letter team codes, (English, Spanish). Keys are canonical GROUPS names.
+# Codes diverge only where usage differs; identical otherwise.
+TEAM_ABBR = {
+    "Mexico": ("MEX", "MEX"), "South Africa": ("RSA", "SUD"),
+    "South Korea": ("KOR", "COR"), "Czechia": ("CZE", "CHQ"),
+    "Canada": ("CAN", "CAN"), "Bosnia and Herzegovina": ("BIH", "BOS"),
+    "Qatar": ("QAT", "QAT"), "Switzerland": ("SUI", "SUI"),
+    "Brazil": ("BRA", "BRA"), "Morocco": ("MAR", "MAR"),
+    "Haiti": ("HAI", "HAI"), "Scotland": ("SCO", "ESC"),
+    "United States": ("USA", "EUA"), "Paraguay": ("PAR", "PAR"),
+    "Australia": ("AUS", "AUS"), "Türkiye": ("TUR", "TUR"),
+    "Germany": ("GER", "ALE"), "Ecuador": ("ECU", "ECU"),
+    "Côte d'Ivoire": ("CIV", "CMF"), "Curaçao": ("CUW", "CUR"),
+    "Netherlands": ("NED", "HOL"), "Japan": ("JPN", "JPN"),
+    "Sweden": ("SWE", "SUE"), "Tunisia": ("TUN", "TUN"),
+    "Belgium": ("BEL", "BEL"), "Egypt": ("EGY", "EGI"),
+    "Iran": ("IRN", "IRN"), "New Zealand": ("NZL", "NZL"),
+    "Spain": ("ESP", "ESP"), "Uruguay": ("URU", "URU"),
+    "Saudi Arabia": ("KSA", "ARS"), "Cape Verde": ("CPV", "CAV"),
+    "France": ("FRA", "FRA"), "Senegal": ("SEN", "SEN"),
+    "Norway": ("NOR", "NOR"), "Iraq": ("IRQ", "IRK"),
+    "Argentina": ("ARG", "ARG"), "Austria": ("AUT", "AUT"),
+    "Algeria": ("ALG", "ALG"), "Jordan": ("JOR", "JOR"),
+    "Portugal": ("POR", "POR"), "Colombia": ("COL", "COL"),
+    "Uzbekistan": ("UZB", "UZB"), "DR Congo": ("COD", "RDC"),
+    "England": ("ENG", "ING"), "Croatia": ("CRO", "CRO"),
+    "Ghana": ("GHA", "GHA"), "Panama": ("PAN", "PAN"),
+}
+
 
 def feeders(match):
     """Return (word, top_feeder_id, bottom_feeder_id) for a match's two slots, or
@@ -374,6 +403,24 @@ def slot_label(match, side):
     top_lbl, bot_lbl = feed_label_pair(match)
     feed = top_lbl if side == "home" else bot_lbl
     return feed or translate("TBD")
+
+
+def team_abbr(team, lang):
+    """3-letter code for a team in the given language.
+    Falls back to the first 3 letters uppercased for unknown teams."""
+    codes = TEAM_ABBR.get(team)
+    if codes is None:
+        return (team or "")[:3].upper()
+    return codes[1] if lang == "es" else codes[0]
+
+
+def match_short(match):
+    """Leaderboard matrix column label: 'CAN-MEX' when both real teams are
+    set, else the 'M{n}' match number."""
+    if has_teams(match):
+        lang = getattr(g, "lang", "en")
+        return f"{team_abbr(match['home_team'], lang)}-{team_abbr(match['away_team'], lang)}"
+    return f"M{match_number(match)}"
 
 
 DEFAULT_DATA = {
@@ -791,6 +838,7 @@ def inject_i18n_helpers():
         "has_result": has_result,
         "slot_label": slot_label,
         "match_number": match_number,
+        "match_short": match_short,
         "compute_points": compute_points,
     }
 
