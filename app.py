@@ -702,13 +702,29 @@ def build_leaderboard(data):
     for user in data["users"].keys():
         user_preds = data["predictions"].get(user, {})
         total = 0
+        score_points = 0
+        advance_points = 0
         breakdown = []
+        points_by_id = {}
+        round_points = {rnd: 0 for rnd in ROUND_ORDER}
         for match in data["matches"]:
             pred = user_preds.get(match["id"])
             pts = compute_points(pred, match)
             breakdown.append({"match": match, "points": pts})
+            points_by_id[match["id"]] = pts
+            round_points[match["round"]] = round_points.get(match["round"], 0) + pts["total"]
+            score_points += pts["score"]
+            advance_points += pts["advance"]
             total += pts["total"]
-        rows.append({"user": user, "total": total, "breakdown": breakdown})
+        rows.append({
+            "user": user,
+            "total": total,
+            "breakdown": breakdown,
+            "round_points": round_points,
+            "points_by_id": points_by_id,
+            "score_points": score_points,
+            "advance_points": advance_points,
+        })
     rows.sort(key=lambda r: r["total"], reverse=True)
     return rows
 
