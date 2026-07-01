@@ -928,7 +928,11 @@ def leaderboard():
     data = load_data()
     rows = build_leaderboard(data)
     matches = sorted_matches(data["matches"])
-    return render_template("leaderboard.html", rows=rows, matches=matches)
+    rounds = [
+        ("r32", "R32"), ("r16", "R16"), ("qf", "QF"),
+        ("sf", "SF"), ("third", "3rd"), ("final", "F"),
+    ]
+    return render_template("leaderboard.html", rows=rows, matches=matches, rounds=rounds)
 
 
 def _bracket_view(match):
