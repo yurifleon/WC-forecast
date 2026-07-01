@@ -43,8 +43,8 @@
       <tr>
         <th>{{ _("Player") }}</th>
         {% for m in matches %}
-        <th class="text-center" title="{{ slot_label(m, 'home') }} vs {{ slot_label(m, 'away') }}">
-          M{{ match_number(m) }}
+        <th class="text-center" title="{{ slot_label(m, 'home') }} vs {{ slot_label(m, 'away') }} · M{{ match_number(m) }}">
+          {{ match_short(m) }}
         </th>
         {% endfor %}
         <th class="text-center">{{ _("Total") }}</th>
