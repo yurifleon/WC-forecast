@@ -34,6 +34,11 @@ row["round_points"] = { round_key: total_points_in_that_round }
   (`r32, r16, qf, sf, third, final`) so absent/incomplete rounds render `0`,
   not a missing key.
 - Rows remain sorted by grand `total` (unchanged).
+- In the same loop, also set `row["score_points"]` and
+  `row["advance_points"]` (sums of `points["score"]` / `points["advance"]`
+  across `breakdown`), replacing the `| sum(attribute=...)` the template
+  currently does, and `row["points_by_id"] = {match_id: points}` for the
+  matrix (§3b).
 
 Logic stays in Python (per CLAUDE.md: no business logic in templates).
 
@@ -55,16 +60,21 @@ Three stacked sections inside the page:
 
 **(a) Per-round summary table (main, ranked leaderboard)**
 
-| Rank | Player | R32 | R16 | QF | SF | 3rd | F | Total |
-|------|--------|-----|-----|----|----|-----|---|-------|
+| Rank | Player | R32 | R16 | QF | SF | 3rd | F | Score | Adv | Total |
+|------|--------|-----|-----|----|----|-----|---|-------|-----|-------|
 
 - One row per `rows` entry, in existing rank order (`loop.index` = rank).
 - Round cells: `row.round_points[round_key]`; render `0` in a muted style,
   positive values plain.
+- `Score` / `Adv` cells: the existing score-vs-advance split, summed from
+  `breakdown` (`points.score` / `points.advance`). **Kept** (per user
+  request) — these carry over from the current table and sit just before
+  `Total`. Computed the same way the current template does it, but moved into
+  the data layer for consistency (see §1).
 - `Total` cell: `row.total`, emphasized (accent, bold) as today.
 - Empty state: `No players yet.` spanning all columns.
-- This **replaces** the current Rank/Player/Score/Advance/Total table. The
-  separate score-vs-advance split is dropped (superseded by the per-round view).
+- This augments the current Rank/Player/Score/Advance/Total table with the
+  six per-round columns; the score/advance split is retained.
 
 **(b) Full per-match matrix (detail)**
 
