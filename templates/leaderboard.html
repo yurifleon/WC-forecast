@@ -1,51 +1,87 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="row">
-  <div class="col-lg-7">
-    <h3 class="mb-3">{{ _("Leaderboard") }}</h3>
-    <table class="table">
-      <thead>
-        <tr>
-          <th>{{ _("Rank") }}</th><th>{{ _("Player") }}</th>
-          <th class="text-end">{{ _("Score points") }}</th>
-          <th class="text-end">{{ _("Advance points") }}</th>
-          <th class="text-end">{{ _("Total") }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in rows %}
-        {% set score_pts = row.breakdown | sum(attribute='points.score') %}
-        {% set adv_pts = row.breakdown | sum(attribute='points.advance') %}
-        <tr>
-          <td>{{ loop.index }}</td>
-          <td>{{ row.user }}</td>
-          <td class="text-end">{{ score_pts }}</td>
-          <td class="text-end">{{ adv_pts }}</td>
-          <td class="text-end accent fw-bold">{{ row.total }}</td>
-        </tr>
-        {% else %}
-        <tr><td colspan="5" class="text-muted">{{ _("No players yet.") }}</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+<h3 class="mb-3">{{ _("Leaderboard") }}</h3>
 
-  <div class="col-lg-5">
-    <div class="card p-3">
-      <h5>{{ _("Scoring") }}</h5>
-      <table class="table table-sm mb-0">
-        <thead>
-          <tr><th></th><th class="text-end">R32</th><th class="text-end">R16</th>
-              <th class="text-end">QF</th><th class="text-end">SF</th><th class="text-end">F</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>{{ _("Exact score") }}</td><td class="text-end">6</td><td class="text-end">7</td><td class="text-end">8</td><td class="text-end">9</td><td class="text-end">10</td></tr>
-          <tr><td>{{ _("Result + goal difference") }}</td><td class="text-end">4</td><td class="text-end">5</td><td class="text-end">5</td><td class="text-end">6</td><td class="text-end">7</td></tr>
-          <tr><td>{{ _("Result only") }}</td><td class="text-end">2</td><td class="text-end">3</td><td class="text-end">3</td><td class="text-end">4</td><td class="text-end">5</td></tr>
-          <tr><td>{{ _("Correct advancing team") }}</td><td class="text-end">+2</td><td class="text-end">+2</td><td class="text-end">+3</td><td class="text-end">+3</td><td class="text-end">+4</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
+<div class="table-responsive mb-4">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>{{ _("Rank") }}</th><th>{{ _("Player") }}</th>
+        {% for key, label in rounds %}
+        <th class="text-end" title="{{ round_label(key) }}">{{ label }}</th>
+        {% endfor %}
+        <th class="text-end">{{ _("Score points") }}</th>
+        <th class="text-end">{{ _("Advance points") }}</th>
+        <th class="text-end">{{ _("Total") }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ row.user }}</td>
+        {% for key, label in rounds %}
+        {% set rp = row.round_points[key] %}
+        <td class="text-end {% if rp == 0 %}text-muted{% endif %}">{{ rp }}</td>
+        {% endfor %}
+        <td class="text-end">{{ row.score_points }}</td>
+        <td class="text-end">{{ row.advance_points }}</td>
+        <td class="text-end accent fw-bold">{{ row.total }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="{{ rounds|length + 5 }}" class="text-muted">{{ _("No players yet.") }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if rows %}
+<h5 class="mb-2">{{ _("Points by match") }}</h5>
+<div class="table-responsive mb-4">
+  <table class="table table-sm">
+    <thead>
+      <tr>
+        <th>{{ _("Player") }}</th>
+        {% for m in matches %}
+        <th class="text-center" title="{{ slot_label(m, 'home') }} vs {{ slot_label(m, 'away') }}">
+          M{{ match_number(m) }}
+        </th>
+        {% endfor %}
+        <th class="text-center">{{ _("Total") }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td>{{ row.user }}</td>
+        {% for m in matches %}
+        {% set pts = row.points_by_id[m.id].total %}
+        <td class="text-center">
+          {% if pts > 0 %}<span class="badge bg-success">{{ pts }}</span>
+          {% else %}<span class="text-muted">0</span>{% endif %}
+        </td>
+        {% endfor %}
+        <td class="text-center accent fw-bold">{{ row.total }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<div class="card p-3" style="max-width: 32rem;">
+  <h5>{{ _("Scoring") }}</h5>
+  <table class="table table-sm mb-0">
+    <thead>
+      <tr><th></th><th class="text-end">R32</th><th class="text-end">R16</th>
+          <th class="text-end">QF</th><th class="text-end">SF</th><th class="text-end">F</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>{{ _("Exact score") }}</td><td class="text-end">6</td><td class="text-end">7</td><td class="text-end">8</td><td class="text-end">9</td><td class="text-end">10</td></tr>
+      <tr><td>{{ _("Result + goal difference") }}</td><td class="text-end">4</td><td class="text-end">5</td><td class="text-end">5</td><td class="text-end">6</td><td class="text-end">7</td></tr>
+      <tr><td>{{ _("Result only") }}</td><td class="text-end">2</td><td class="text-end">3</td><td class="text-end">3</td><td class="text-end">4</td><td class="text-end">5</td></tr>
+      <tr><td>{{ _("Correct advancing team") }}</td><td class="text-end">+2</td><td class="text-end">+2</td><td class="text-end">+3</td><td class="text-end">+3</td><td class="text-end">+4</td></tr>
+    </tbody>
+  </table>
 </div>
 {% endblock %}
