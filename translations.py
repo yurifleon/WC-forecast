@@ -66,6 +66,7 @@ SPANISH_TRANSLATIONS = {
     "Total": "Total",
     "Score points": "Puntos por marcador",
     "Advance points": "Puntos por avance",
+    "Points by match": "Puntos por partido",
     "Scoring": "Puntaje",
     "Exact score": "Marcador exacto",
     "Result + goal difference": "Resultado + diferencia de goles",
