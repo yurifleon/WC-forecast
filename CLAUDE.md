@@ -124,6 +124,15 @@ zero a correct scoreline). The `TIERS` table (`third` == `final`):
 | `result` (1X2 only)  | 2   | 3   | 3  | 4  | 5           |
 | `advance` (added)    | +2  | +2  | +3 | +3 | +4          |
 
+**Leaderboard (`build_leaderboard`, `/leaderboard`):** one row per user with `total`,
+`score_points`/`advance_points` (split totals), `round_points` (per-round `{round: pts}`
+over `ROUND_ORDER`), and `points_by_id` (`{match_id: compute_points(...)}` for the full
+per-match matrix). Rows sort by `total` desc. The template renders a per-round summary
+plus a full per-match points matrix; matrix column headers use `match_short(match)` —
+`"CAN-MEX"` (3-letter matchup code) when both real teams are set, else `"M{n}"` (FIFA
+match number). Codes come from `TEAM_ABBR` (per-team EN/ES 3-letter tuple; `team_abbr`
+falls back to `team[:3].upper()`).
+
 **i18n:** EN + ES. Strings go through `translate()` / `_()` (injected into templates).
 Spanish lives in `translations.py` (separate module, not inline — a UCL lesson).
 Lang resolution: user `preferred_lang` → `session["lang"]` → `Accept-Language` → `en`.
@@ -131,6 +140,9 @@ Lang resolution: user `preferred_lang` → `session["lang"]` → `Accept-Languag
 **Auth:** username+password, PBKDF2 (Werkzeug). `/register` self-serve (capped at
 `MAX_USERS`). Admin is a separate password gate (`session["is_admin"]`,
 `ADMIN_PASSWORD` env overrides stored value). No email reset yet; admin can reset.
+Admin POST actions: `save_match`, `clear_match_result` / `clear_all_results` (wipe
+score + `advanced_team` via `_clear_result`, leaving schedule/teams/kickoff intact so
+locking is unaffected), `add_user`, `reset_user_password`, `remove_user`.
 
 **Routes:** `/` (login), `/register`, `/logout`, `/dashboard`, `/predict/<id>`,
 `/leaderboard`, `/bracket`, `/simulator`, `/s/<token>` (public, read-only shared sim),
@@ -188,8 +200,8 @@ don't reintroduce home/away wording in templates.
 
 **Templates:** Jinja2 + Bootstrap 5.3 dark theme, **no custom JS**. Keep logic in
 Python helpers and inject view helpers via the `inject_i18n_helpers` context processor
-(`_`, `round_label`, `is_locked`, `is_predictable`, `has_teams`, `slot_label`,
-`match_number`, `compute_points`).
+(`_`, `lang`, `round_label`, `is_locked`, `is_predictable`, `has_teams`, `has_result`,
+`slot_label`, `match_number`, `match_short`, `compute_points`).
 
 ## Code style
 
