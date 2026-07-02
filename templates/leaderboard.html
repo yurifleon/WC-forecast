@@ -45,6 +45,10 @@
         {% for m in matches %}
         <th class="text-center" title="{{ slot_label(m, 'home') }} vs {{ slot_label(m, 'away') }} · M{{ match_number(m) }}">
           {{ match_short(m) }}
+          {% set has_score = m.home_score is not none and m.away_score is not none %}
+          <div class="small {% if has_score %}text-muted{% else %}invisible{% endif %}">
+            {% if has_score %}{{ m.home_score }}-{{ m.away_score }}{% else %}0-0{% endif %}
+          </div>
         </th>
         {% endfor %}
         <th class="text-center">{{ _("Total") }}</th>
