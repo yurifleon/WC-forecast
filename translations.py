@@ -47,6 +47,7 @@ SPANISH_TRANSLATIONS = {
     "Locked": "Cerrado",
     "Open": "Abierto",
     "Deadline": "Cierre",
+    "Hidden until kickoff": "Oculto hasta el inicio",
     "TBD": "Por definir",
     "Predict the full-time score": "Pronostica el marcador final",
     "If it goes to penalties, who advances?": "Si va a penales, ¿quién avanza?",
