@@ -60,9 +60,20 @@
         <td>{{ row.user }}</td>
         {% for m in matches %}
         {% set pts = row.points_by_id[m.id].total %}
+        {% set pred = row.pred_by_id.get(m.id) %}
+        {% set revealed = (row.user == viewer) or is_locked(m) %}
         <td class="text-center">
           {% if pts > 0 %}<span class="badge bg-success">{{ pts }}</span>
           {% else %}<span class="text-muted">0</span>{% endif %}
+          <div class="small text-muted">
+            {% if not revealed %}
+              <span title="{{ _('Hidden until kickoff') }}">·</span>
+            {% elif pred %}
+              {{ pred.home }}-{{ pred.away }}{% if pred.advance %} ·{{ team_abbr(pred.advance, lang) }}{% endif %}
+            {% else %}
+              —
+            {% endif %}
+          </div>
         </td>
         {% endfor %}
         <td class="text-center accent fw-bold">{{ row.total }}</td>

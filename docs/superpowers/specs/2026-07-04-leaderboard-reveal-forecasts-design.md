@@ -34,9 +34,12 @@ kickoff"` tooltip.
 (no `login_required`). For an anonymous viewer there is no "own", so forecasts are
 gated purely by `is_locked`.
 
-Rationale: `is_locked` already returns true once kickoff (the prediction deadline)
-passes, and fails **locked** on an unparseable/missing deadline — so a forecast can
-never leak early through a bad timestamp.
+Rationale: `is_locked` returns true once kickoff (the prediction deadline) passes. A
+**missing** kickoff → not locked → forecast stays hidden (the safe direction here). An
+**unparseable** kickoff → locked → would reveal — the opposite of the safe direction —
+but that state is unreachable with real data: a prediction can only exist for a match
+that was predictable (teams set + a parseable future kickoff) at submit time, so a stored
+prediction never coexists with a corrupt timestamp.
 
 ## Content per cell
 

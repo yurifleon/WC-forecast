@@ -783,6 +783,7 @@ def build_leaderboard(data):
             "points_by_id": points_by_id,
             "score_points": score_points,
             "advance_points": advance_points,
+            "pred_by_id": user_preds,
         })
     rows.sort(key=lambda r: r["total"], reverse=True)
     return rows
@@ -856,6 +857,7 @@ def inject_i18n_helpers():
         "slot_label": slot_label,
         "match_number": match_number,
         "match_short": match_short,
+        "team_abbr": team_abbr,
         "compute_points": compute_points,
     }
 
@@ -994,7 +996,8 @@ def leaderboard():
         ("r32", "R32"), ("r16", "R16"), ("qf", "QF"),
         ("sf", "SF"), ("third", "3rd"), ("final", "F"),
     ]
-    return render_template("leaderboard.html", rows=rows, matches=matches, rounds=rounds)
+    return render_template("leaderboard.html", rows=rows, matches=matches, rounds=rounds,
+                           viewer=session.get("username"))
 
 
 def _bracket_view(match):

@@ -131,7 +131,10 @@ per-match matrix). Rows sort by `total` desc. The template renders a per-round s
 plus a full per-match points matrix; matrix column headers use `match_short(match)` —
 `"CAN-MEX"` (3-letter matchup code) when both real teams are set, else `"M{n}"` (FIFA
 match number). Codes come from `TEAM_ABBR` (per-team EN/ES 3-letter tuple; `team_abbr`
-falls back to `team[:3].upper()`).
+falls back to `team[:3].upper()`). The matrix also shows each player's **forecast** (`pred_by_id`: predicted scoreline +
+advance code via `team_abbr`) beneath the points badge, gated per cell by
+`row.user == viewer or is_locked(match)` — your own is always visible, others' reveal
+at kickoff. `/leaderboard` is public, so `viewer` is `session.get("username")` or None.
 
 **i18n:** EN + ES. Strings go through `translate()` / `_()` (injected into templates).
 Spanish lives in `translations.py` (separate module, not inline — a UCL lesson).
@@ -208,7 +211,7 @@ don't reintroduce home/away wording in templates.
 **Templates:** Jinja2 + Bootstrap 5.3 dark theme, **no custom JS**. Keep logic in
 Python helpers and inject view helpers via the `inject_i18n_helpers` context processor
 (`_`, `lang`, `round_label`, `is_locked`, `is_predictable`, `has_teams`, `has_result`,
-`slot_label`, `match_number`, `match_short`, `compute_points`).
+`slot_label`, `match_number`, `match_short`, `team_abbr`, `compute_points`).
 
 ## Code style
 
