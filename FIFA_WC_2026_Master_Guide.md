@@ -1,5 +1,14 @@
 # FIFA World Cup 2026 Master Guide
 
+> ⚠️ **THE KNOCKOUT BRACKET FEED IN THIS GUIDE IS WRONG — do not use it for topology.**
+> The "Knockout Bracket" section shows a fully *sequential* feed (e.g. M89 = W73 v W74,
+> M101 = W97 v W98). The real FIFA WC2026 bracket is **non-sequential** at R16 **and** QF.
+> Authoritative sources: `knockout-round.md` (R16, M89–M96: M89 = W73 v **W75**) and
+> Wikipedia "2026 FIFA World Cup knockout stage" (QF, M97–M100: **M98 = W93 v W94,
+> M99 = W91 v W92**). SF onward *are* sequential. The app encodes the correct feed in
+> `_R16_FEED` / `_QF_FEED` (app.py) — see commit 752e05a. Groups, venues, dates, and
+> the R32 matchups here are fine; only the downstream **feeds** are wrong.
+
 ## Tournament Overview
 
 * Hosts: Canada, Mexico, United States

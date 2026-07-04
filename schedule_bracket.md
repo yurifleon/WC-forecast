@@ -1,5 +1,14 @@
 # FIFA World Cup 2026 Knockout Bracket
 
+> ⚠️ **THE BRACKET FEED BELOW IS WRONG — do not use it for topology.** This doc shows
+> the knockout feed as fully *sequential* (e.g. M89 = W73 v W74, M101 = W97 v W98). The
+> real FIFA WC2026 bracket is **non-sequential** at R16 **and** QF. Authoritative
+> sources: `knockout-round.md` (R16, M89–M96: M89 = W73 v **W75**) and Wikipedia
+> "2026 FIFA World Cup knockout stage" (QF, M97–M100: **M98 = W93 v W94, M99 = W91 v
+> W92**). SF onward *are* sequential. The app encodes the correct feed in `_R16_FEED` /
+> `_QF_FEED` (app.py) — see commit 752e05a. Dates/venues here may still be useful; the
+> matchup **feeds** are not.
+
 ## From Round of 32 to the Final
 
 ```
