@@ -96,6 +96,7 @@ SPANISH_TRANSLATIONS = {
     "Home team": "Equipo local",
     "Away team": "Equipo visitante",
     "Kickoff": "Inicio",
+    "Venue": "Sede",
     "Match updated.": "Partido actualizado.",
     "Result saved.": "Resultado guardado.",
     "Match saved.": "Partido guardado.",

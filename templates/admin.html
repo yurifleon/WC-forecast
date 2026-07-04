@@ -69,6 +69,10 @@
           </div>
 
           <div class="col-md-4">
+            <label class="small text-muted">{{ _("Venue") }}</label>
+            <input class="form-control form-control-sm" type="text" name="venue" value="{{ m.venue or '' }}">
+          </div>
+          <div class="col-md-4">
             <label class="small text-muted">{{ _("Final score") }}</label>
             <div class="d-flex align-items-center gap-2">
               <input class="form-control form-control-sm text-center" type="number" min="0" name="home_score"
@@ -86,7 +90,7 @@
               {% if m.away_team %}<option value="{{ m.away_team }}" {{ 'selected' if m.advanced_team == m.away_team }}>{{ m.away_team }}</option>{% endif %}
             </select>
           </div>
-          <div class="col-md-4 text-end">
+          <div class="col-12 text-end">
             <button class="btn btn-sm btn-wc" type="submit">{{ _("Save") }}</button>
           </div>
         </form>

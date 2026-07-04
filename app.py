@@ -569,6 +569,20 @@ def migrate_data(data):
                 m[field] = value
                 changed = True
 
+    # ONE-SHOT (revert after live deploy confirms): force-correct R16 venue +
+    # kickoff on the live disk, which fill-if-empty above can't touch (stale
+    # non-null values seeded from the pre-R16 schedule). Scoped to R16 and to
+    # these two cosmetic/deadline fields only — teams/scores/other rounds are
+    # left alone, so predictions are unaffected. Remove once prod is corrected.
+    for m in data["matches"]:
+        if m["round"] != "r16":
+            continue
+        sched = MATCH_SCHEDULE.get(m["id"], {})
+        for field in ("venue", "kickoff_utc"):
+            if field in sched and m.get(field) != sched[field]:
+                m[field] = sched[field]
+                changed = True
+
     if changed:
         _write(data)
     return data
@@ -1146,6 +1160,7 @@ def admin():
             if m:
                 m["home_team"] = (request.form.get("home_team") or "").strip() or None
                 m["away_team"] = (request.form.get("away_team") or "").strip() or None
+                m["venue"] = (request.form.get("venue") or "").strip() or None
                 m["kickoff_utc"] = parse_admin_kickoff(request.form.get("kickoff"))
 
                 scores = {}
