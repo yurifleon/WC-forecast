@@ -140,8 +140,10 @@ Lang resolution: user `preferred_lang` → `session["lang"]` → `Accept-Languag
 **Auth:** username+password, PBKDF2 (Werkzeug). `/register` self-serve (capped at
 `MAX_USERS`). Admin is a separate password gate (`session["is_admin"]`,
 `ADMIN_PASSWORD` env overrides stored value). No email reset yet; admin can reset.
-Admin POST actions: `save_match`, `clear_match_result` / `clear_all_results` (wipe
-score + `advanced_team` via `_clear_result`, leaving schedule/teams/kickoff intact so
+Admin POST actions: `save_match` (edits teams, **venue**, kickoff, score,
+`advanced_team` in one form — venue is a plain text field, kickoff a `datetime-local`
+in `DISPLAY_TZ`), `clear_match_result` / `clear_all_results` (wipe score +
+`advanced_team` via `_clear_result`, leaving schedule/teams/kickoff/venue intact so
 locking is unaffected), `add_user`, `reset_user_password`, `remove_user`.
 
 **Routes:** `/` (login), `/register`, `/logout`, `/dashboard`, `/predict/<id>`,
