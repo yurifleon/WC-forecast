@@ -158,19 +158,24 @@ tree layout (see Bracket view).
 
 **Bracket view (`/bracket`):** renders the knockout as a **winner-flow tree**, not flat
 columns. The feeding relationship is **derived, not stored** — `feeders(match)` maps a
-match to the two previous-round matches feeding it. QF→Final use the sequential rule
-(match *k* ← `(2k-1, 2k)`; `final`/`third` ← `sf-1`/`sf-2`, winners/losers). **R16 is the
-exception:** the real FIFA WC26 bracket pairs R32 winners **non-sequentially**, so R16
-feeders come from the explicit `_R16_FEED` map (`r16-1` ← `r32-1` + `r32-3`, etc.; source
-`knockout-round.md`, M89–M96). `feed_label_pair()` turns feeders into placeholder labels
-(`Winner R32-3`, `Loser SF-2`, via `ROUND_CODE_SHORT`) shown in empty downstream slots
-until real teams arrive. The route builds `columns` over `["r32","r16","qf","sf","final"]`
-(each match resolved through `_bracket_view`, which adds `*_display`/`*_is_placeholder`),
-passing `third` **separately**. The R32 column is ordered by `_tree_order` →
-`_BRACKET_R32_ORDER` (each R16's two feeders laid out adjacently) so the **pure-CSS**
-connectors line up — `:is()` elbow pseudo-elements in `base.html`; alignment relies on
-equal-flex match cells + flex-default `align-items:stretch` (load-bearing). Other rounds
-use numeric order; dashboard/admin/predict use `sorted_matches` (numeric), unaffected.
+match to the two previous-round matches feeding it. SF→Final use the sequential rule
+(match *k* ← `(2k-1, 2k)`; `final`/`third` ← `sf-1`/`sf-2`, winners/losers). **R16 AND QF
+are non-sequential exceptions:** the real FIFA WC26 bracket pairs winners
+**non-sequentially**, so their feeders come from explicit maps — `_R16_FEED` (`r16-1` ←
+`r32-1` + `r32-3`, etc.; source `knockout-round.md`, M89–M96) and `_QF_FEED` (`qf-2` ←
+`r16-5` + `r16-6`, `qf-3` ← `r16-3` + `r16-4` — the middle two QFs draw from swapped R16
+pairs; source Wikipedia "2026 FIFA World Cup knockout stage", M97–M100: M98 = W93 v W94,
+M99 = W91 v W92). SF stays sequential (M101 = W97 v W98, M102 = W99 v W100).
+`feed_label_pair()` turns feeders into placeholder labels (`Winner R32-3`, `Loser SF-2`,
+via `ROUND_CODE_SHORT`) shown in empty downstream slots until real teams arrive. The route
+builds `columns` over `["r32","r16","qf","sf","final"]` (each match resolved through
+`_bracket_view`, which adds `*_display`/`*_is_placeholder`), passing `third` **separately**.
+The R32 **and R16** columns are ordered by `_tree_order` → `_BRACKET_R32_ORDER` /
+`_BRACKET_R16_ORDER` (each downstream match's two feeders laid out adjacently, cascading
+through `_QF_FEED`→`_R16_FEED`) so the **pure-CSS** connectors line up — `:is()` elbow
+pseudo-elements in `base.html`; alignment relies on equal-flex match cells + flex-default
+`align-items:stretch` (load-bearing). Other columns use numeric order; dashboard/admin/predict
+use `sorted_matches` (numeric), unaffected.
 Design + plan: `docs/superpowers/specs/` and `docs/superpowers/plans/`.
 
 **Simulator (`/simulator`):** a private per-user "what-if" bracket, **completely

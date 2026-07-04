@@ -90,12 +90,15 @@ ROUND_CODE_SHORT = {"r32": "R32", "r16": "R16", "qf": "QF", "sf": "SF"}
 
 # Standard bracket pairing: match k of a round is fed by matches (2k-1, 2k) of the
 # previous round; the third-place play-off and the final both draw from the two
-# semifinals (losers and winners respectively). This holds for QF -> Final.
+# semifinals (losers and winners respectively). This holds for SF -> Final; R16 and
+# QF are non-sequential exceptions (see _R16_FEED / _QF_FEED).
 _FEEDER_PREV = {"r16": "r32", "qf": "r16", "sf": "qf", "final": "sf", "third": "sf"}
 
-# Round of 16 is the exception: the real FIFA WC 2026 bracket pairs R32 winners
-# NON-sequentially (source: knockout-round.md, M89-M96). Each r16 match maps to its
-# two feeding R32 matches explicitly. QF onward stay sequential (2k-1, 2k).
+# Round of 16 AND the quarterfinals are non-sequential in the real FIFA WC 2026
+# bracket. Each match maps to its two feeders explicitly (sources: knockout-round.md
+# for R16 M89-M96; Wikipedia "2026 FIFA World Cup knockout stage" for QF M97-M100 —
+# M98 = W93 v W94 and M99 = W91 v W92, i.e. the middle two QFs draw from swapped R16
+# pairs). Semifinals onward ARE sequential (M101 = W97 v W98, M102 = W99 v W100).
 _R16_FEED = {
     "r16-1": ("r32-1", "r32-3"),    # M89: W73 vs W75
     "r16-2": ("r32-2", "r32-5"),    # M90: W74 vs W77
@@ -106,11 +109,20 @@ _R16_FEED = {
     "r16-7": ("r32-14", "r32-16"),  # M95: W86 vs W88
     "r16-8": ("r32-13", "r32-15"),  # M96: W85 vs W87
 }
+_QF_FEED = {
+    "qf-1": ("r16-1", "r16-2"),  # M97:  W89 vs W90
+    "qf-2": ("r16-5", "r16-6"),  # M98:  W93 vs W94
+    "qf-3": ("r16-3", "r16-4"),  # M99:  W91 vs W92
+    "qf-4": ("r16-7", "r16-8"),  # M100: W95 vs W96
+}
 
-# R32 column order for the bracket/simulator tree: each r16's two feeders laid out
-# adjacently (top then bottom) so the pure-CSS connectors line up. Other rounds use
-# numeric order (sorted_matches); only R32 needs reshuffling because of _R16_FEED.
-_BRACKET_R32_ORDER = [fid for k in range(1, 9) for fid in _R16_FEED[f"r16-{k}"]]
+# Bracket/simulator tree column ordering: lay out each column so a match's two feeders
+# sit adjacently (top then bottom) in the previous column, so the pure-CSS connectors
+# line up. Because R16 and QF feeds are non-sequential, the R16 column (ordered via
+# _QF_FEED) and the R32 column (cascading through _R16_FEED) must both be reshuffled;
+# SF/final columns use plain numeric order.
+_BRACKET_R16_ORDER = [fid for k in range(1, 5) for fid in _QF_FEED[f"qf-{k}"]]
+_BRACKET_R32_ORDER = [fid for r16 in _BRACKET_R16_ORDER for fid in _R16_FEED[r16]]
 
 # 48 participating nations by group (source: FIFA_WC_2026_Master_Guide.md). Used to
 # narrow the admin team dropdown to a match's possible teams.
@@ -172,8 +184,9 @@ def feeders(match):
     word = "Loser" if rnd == "third" else "Winner"
     if rnd in ("final", "third"):
         return (word, "sf-1", "sf-2")
-    if rnd == "r16":  # non-sequential real bracket; see _R16_FEED
-        pair = _R16_FEED.get(match.get("id"))
+    explicit = _R16_FEED if rnd == "r16" else _QF_FEED if rnd == "qf" else None
+    if explicit:  # non-sequential real bracket; see _R16_FEED / _QF_FEED
+        pair = explicit.get(match.get("id"))
         return (word, pair[0], pair[1]) if pair else None
     try:
         k = int(str(match["id"]).rsplit("-", 1)[-1])
@@ -791,11 +804,13 @@ def sorted_matches(matches):
 
 
 def _tree_order(rnd, matches):
-    """Order one round's matches for the bracket/simulator winner-flow tree. R32 is
-    laid out by _BRACKET_R32_ORDER so each r16's feeders sit adjacent (CSS connectors
-    line up); every other round uses numeric order."""
-    if rnd == "r32":
-        idx = {mid: i for i, mid in enumerate(_BRACKET_R32_ORDER)}
+    """Order one round's matches for the bracket/simulator winner-flow tree. R32 and
+    R16 are laid out by _BRACKET_R32_ORDER / _BRACKET_R16_ORDER so each downstream
+    match's feeders sit adjacent (CSS connectors line up); every other round uses
+    numeric order."""
+    order = {"r32": _BRACKET_R32_ORDER, "r16": _BRACKET_R16_ORDER}.get(rnd)
+    if order:
+        idx = {mid: i for i, mid in enumerate(order)}
         return sorted(matches, key=lambda m: idx.get(m["id"], 99))
     return sorted_matches(matches)
 
