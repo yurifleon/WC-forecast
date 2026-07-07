@@ -1182,6 +1182,21 @@ def admin():
 
                 adv = (request.form.get("advanced_team") or "").strip()
                 m["advanced_team"] = adv if adv in (m["home_team"], m["away_team"]) else None
+
+                # Guard: player advance picks are validated only at predict time, so a
+                # team change here can strand a pick on a team no longer in this match.
+                # Null any advance that no longer matches (keep the scoreline) so stale
+                # picks can't linger or mis-display on the leaderboard.
+                valid = (m["home_team"], m["away_team"])
+                stranded = 0
+                for upreds in data["predictions"].values():
+                    p = upreds.get(m["id"])
+                    if p and p.get("advance") is not None and p["advance"] not in valid:
+                        p["advance"] = None
+                        stranded += 1
+                if stranded:
+                    flash(translate("Cleared {n} now-invalid advance pick(s) after the team change.",
+                                    n=stranded), "warning")
                 flash(translate("Match saved."), "success")
 
         elif action == "clear_match_result":

@@ -145,7 +145,9 @@ Lang resolution: user `preferred_lang` → `session["lang"]` → `Accept-Languag
 `ADMIN_PASSWORD` env overrides stored value). No email reset yet; admin can reset.
 Admin POST actions: `save_match` (edits teams, **venue**, kickoff, score,
 `advanced_team` in one form — venue is a plain text field, kickoff a `datetime-local`
-in `DISPLAY_TZ`), `clear_match_result` / `clear_all_results` (wipe score +
+in `DISPLAY_TZ`; a team change nulls any player `advance` pick no longer valid for the
+new teams, since picks are validated only at predict time), `clear_match_result` /
+`clear_all_results` (wipe score +
 `advanced_team` via `_clear_result`, leaving schedule/teams/kickoff/venue intact so
 locking is unaffected), `add_user`, `reset_user_password`, `remove_user`.
 

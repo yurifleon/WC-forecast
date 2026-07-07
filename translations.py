@@ -101,6 +101,7 @@ SPANISH_TRANSLATIONS = {
     "Match updated.": "Partido actualizado.",
     "Result saved.": "Resultado guardado.",
     "Match saved.": "Partido guardado.",
+    "Cleared {n} now-invalid advance pick(s) after the team change.": "Se borraron {n} pronóstico(s) de avance ya no válidos tras el cambio de equipos.",
     "single match": "partido único",
     "vs": "vs",
     "Final score": "Marcador final",
